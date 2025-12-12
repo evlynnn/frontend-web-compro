@@ -6,4 +6,8 @@
   --color-primary-yellow: #fcb90b;
   --color-primary-black: #010102;
   --color-secondary-gray: #f1f1f1;
+  
+  --color-chart-total: var(--color-primary-yellow);
+  --color-chart-authorized: #10B981;
+  --color-chart-unauthorized: #EF4444;
 }
