@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import Logo from "../assets/Logo.png";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -58,9 +59,13 @@ const Register = () => {
       <div className="relative z-10 w-full max-w-md px-6 sm:px-10 py-10 sm:py-12 bg-primary-white rounded-3xl shadow-xl text-center">
 
         {/* Logo */}
-        <div className="mb-8 flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full bg-primary-yellow flex items-center justify-center mx-auto">
-            <span className="text-xs font-bold text-primary-black">LOGO</span>
+        <div className="mb-5 flex flex-col items-center">
+          <div className="rounded-full p-3 bg-white/60 shadow-sm ring-2 ring-gray-300">
+            <img
+              src={Logo}
+              alt="App Logo"
+              className="w-18 h-18 object-contain"
+            />
           </div>
         </div>
 

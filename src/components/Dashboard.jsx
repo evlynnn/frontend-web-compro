@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -10,9 +11,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
-import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
-import Logo from "../assets/Logo.png";
+import Sidebar from "./Sidebar";
 
 const logsFromBackend = [
   { authorized: true, confidence: 0.95, id: 1, name: "Iksan", role: "Aslab", timestamp: "2025-12-12 09:24:31" },
@@ -79,52 +78,13 @@ const incBucket = (map, key, isAuthorized) => {
   else map[key].unauthorized += 1;
 };
 
-const ThemeToggleSwitch = ({ theme, setTheme }) => {
-  const isDark = theme === "dark";
+const Dashboard = (props) => {
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  return (
-    <button
-      type="button"
-      onClick={() => setTheme(isDark ? "light" : "dark")}
-      role="switch"
-      aria-checked={isDark}
-      title={isDark ? "Dark mode" : "Light mode"}
-      className={[
-        "relative",
-        "w-14 h-7",
-        "rounded-full",
-        "px-1.5",
-        "flex items-center justify-between",
-        "border border-white/10",
-        "transition-colors duration-200",
-        "shadow-inner",
-        "focus:outline-none focus:ring-2 focus:ring-primary-yellow/60",
-        isDark ? "bg-black/70 ring-1 ring-primary-yellow/60" : "bg-white/70",
-      ].join(" ")}
-    >
-      <span className={`flex items-center justify-center -mt-[1px] ${isDark ? "text-white/40" : "text-black/70"}`}>
-        <LightModeRoundedIcon sx={{ fontSize: 15 }} />
-      </span>
+  const initialTarget = location.state?.scrollTo; 
+  const bootRef = useRef(false); 
 
-      <span className={`flex items-center justify-center -mt-[1px] ${isDark ? "text-white/75" : "text-black/45"}`}>
-        <DarkModeRoundedIcon sx={{ fontSize: 15 }} />
-      </span>
-
-      <span
-        className={[
-          "absolute inset-y-1 my-auto",
-          "w-5 h-5",
-          "rounded-full",
-          "shadow-md",
-          "transition-all duration-200",
-          isDark ? "bg-white left-1" : "bg-black right-1",
-        ].join(" ")}
-      />
-    </button>
-  );
-};
-
-const Dashboard = () => {
   const [recapMode, setRecapMode] = useState("week");
   const [nowTick, setNowTick] = useState(Date.now());
   const hourScrollRef = useRef(null);
@@ -138,11 +98,10 @@ const Dashboard = () => {
   const sectionLogsRef = useRef(null);
   const sectionAnalyticsRef = useRef(null);
 
-  const [activeSection, setActiveSection] = useState("camera");
-
+  const [activeSection, setActiveSection] = useState(initialTarget || "camera");
   const atBottomRef = useRef(false);
 
-  const scrollToSection = (key) => {
+  const scrollToSection = (key, behavior = "smooth") => {
     atBottomRef.current = false;
 
     const map = {
@@ -154,8 +113,33 @@ const Dashboard = () => {
     if (!ref?.current) return;
 
     setActiveSection(key);
-    ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    ref.current.scrollIntoView({ behavior, block: "start" });
   };
+
+  useLayoutEffect(() => {
+    bootRef.current = true;
+
+    if (!initialTarget) {
+      bootRef.current = false;
+      return;
+    }
+
+    setActiveSection(initialTarget);
+
+    const map = {
+      camera: sectionCameraRef,
+      logs: sectionLogsRef,
+      analytics: sectionAnalyticsRef,
+    };
+    const ref = map[initialTarget];
+    if (ref?.current) {
+      ref.current.scrollIntoView({ behavior: "auto", block: "start" });
+    }
+
+    navigate(location.pathname, { replace: true, state: {} });
+
+    bootRef.current = false;
+  }, []);
 
   useEffect(() => {
     const items = [
@@ -168,6 +152,8 @@ const Dashboard = () => {
 
     const obs = new IntersectionObserver(
       (entries) => {
+        if (bootRef.current) return;
+
         const visible = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => (b.intersectionRatio ?? 0) - (a.intersectionRatio ?? 0))[0];
@@ -191,6 +177,8 @@ const Dashboard = () => {
 
   useEffect(() => {
     const onScroll = () => {
+      if (bootRef.current) return;
+
       const doc = document.documentElement;
       const distanceToBottom = doc.scrollHeight - (window.scrollY + window.innerHeight);
 
@@ -204,14 +192,6 @@ const Dashboard = () => {
     onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  const navBtnClass = (key) => {
-    const active = activeSection === key;
-    return [
-      "w-full text-left px-3 py-2 rounded-2xl font-semibold transition",
-      active ? "bg-primary-yellow text-primary-black" : "text-white/80 hover:bg-white/5",
-    ].join(" ");
-  };
 
   useEffect(() => {
     const root = document.documentElement;
@@ -345,54 +325,18 @@ const Dashboard = () => {
     return logsToday.slice().sort((a, b) => b._date - a._date).slice(0, 10);
   }, [logsToday]);
 
+  const sidebarProps = {
+    ...props, 
+    activeSection,
+    scrollToSection,
+    handleLogout,
+    theme,
+    setTheme,
+  };
+
   return (
     <div className="min-h-screen bg-primary-black text-primary-white">
-      <aside className="fixed inset-y-0 left-0 h-screen w-60 md:w-64 border-r border-white/10 flex flex-col px-5 py-6 bg-primary-black">
-        <div className="flex flex-col flex-1 min-h-0">
-          <div className="flex flex-col items-center mb-6">
-            <div className="w-14 h-14 flex items-center justify-center mb-3">
-              <img src={Logo} alt="AI Lab Logo" className="w-15 h-15 object-contain" />
-            </div>
-
-            <div className="flex flex-col items-center text-center leading-tight">
-              <span className="text-sm font-semibold tracking-wide">Monitoring Dashboard</span>
-              <span className="text-[11px] text-white/60">AI Lab • Smart Door Access</span>
-            </div>
-          </div>
-
-          <div className="mb-4 border-t border-white/10" />
-
-          <nav className="flex flex-col flex-1 min-h-0 space-y-1 text-sm">
-            <button type="button" onClick={() => scrollToSection("camera")} className={navBtnClass("camera")}>
-              Camera Monitor
-            </button>
-
-            <button type="button" onClick={() => scrollToSection("logs")} className={navBtnClass("logs")}>
-              Door Access Logs
-            </button>
-
-            <button type="button" onClick={() => scrollToSection("analytics")} className={navBtnClass("analytics")}>
-              Analytics
-            </button>
-
-            <button
-              onClick={handleLogout}
-              className="w-full text-left px-3 py-2 rounded-2xl text-white/80 hover:bg-red-500/10 hover:text-red-400 transition font-semibold"
-            >
-              Logout
-            </button>
-          </nav>
-        </div>
-
-        <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold">Evelyn</span>
-            <span className="text-[11px] text-white/60">Administrator</span>
-          </div>
-
-          <ThemeToggleSwitch theme={theme} setTheme={setTheme} />
-        </div>
-      </aside>
+      <Sidebar {...sidebarProps} />
 
       <main className="ml-60 md:ml-64 px-4 py-6 md:px-8 md:py-8">
         <div className="max-w-6xl mx-auto grid gap-6 lg:grid-cols-[2fr,1.1fr]">

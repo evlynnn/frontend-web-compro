@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import Logo from "../assets/Logo.png"; 
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate();
@@ -38,13 +39,17 @@ const Login = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen bg-secondary-gray flex items-center justify-center relative overflow-hidden">
-
+      
       {/* Login Card */}
       <div className="relative z-10 w-full max-w-md px-6 sm:px-10 py-10 sm:py-12 bg-primary-white rounded-3xl shadow-xl text-center">
-
-        <div className="mb-8 flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full bg-primary-yellow flex items-center justify-center mx-auto">
-            <span className="text-xs font-bold text-primary-black">LOGO</span>
+        
+        {/* Logo */}
+        <div className="mb-5 flex flex-col items-center">
+          <div className="rounded-full p-3 bg-white/60 shadow-sm ring-2 ring-gray-300">
+            <img src={Logo} 
+            alt="App Logo" 
+            className="w-18 h-18 object-contain" 
+            />
           </div>
         </div>
 
@@ -111,6 +116,7 @@ const Login = ({ onLogin }) => {
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
                 className="absolute inset-y-0 right-3 flex items-center text-gray-600 hover:text-primary-black"
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
                   <VisibilityOff fontSize="small" />
@@ -123,6 +129,18 @@ const Login = ({ onLogin }) => {
             {errorPassword && (
               <p className="text-red-500 text-xs mt-1">{errorPassword}</p>
             )}
+
+            {/* Forgot password */}
+            <div className="mt-2 text-right">
+              <span className="text-xs text-gray-500">Forgot password? </span>
+              <button
+                type="button"
+                onClick={() => navigate("/reset-password")}
+                className="text-xs font-semibold text-primary-black underline underline-offset-2"
+              >
+                Reset password
+              </button>
+            </div>
           </div>
 
           {/* Login Button */}
@@ -145,7 +163,6 @@ const Login = ({ onLogin }) => {
             Register here
           </button>
         </p>
-
       </div>
     </div>
   );
