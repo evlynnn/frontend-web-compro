@@ -14,10 +14,10 @@ import {
 import Sidebar from "./Sidebar";
 
 const logsFromBackend = [
-  { authorized: true, confidence: 0.95, id: 1, name: "Iksan", role: "Aslab", timestamp: "2025-12-12 09:24:31" },
-  { authorized: true, confidence: 0.9, id: 2, name: "Akbar", role: "Aslab", timestamp: "2025-12-12 11:18:12" },
-  { authorized: false, confidence: 0.11, id: 210, name: "Unknown", role: "Guest", timestamp: "2025-12-12 11:07:18" },
-  { authorized: true, confidence: 0.87, id: 3, name: "Bian", role: "Dosen", timestamp: "2025-12-12 13:02:44" },
+  { authorized: true, confidence: 0.95, id: 1, name: "Iksan", role: "Aslab", timestamp: "2025-12-13 09:24:31" },
+  { authorized: true, confidence: 0.9, id: 2, name: "Akbar", role: "Aslab", timestamp: "2025-12-13 11:18:12" },
+  { authorized: false, confidence: 0.11, id: 210, name: "Unknown", role: "Guest", timestamp: "2025-12-13 11:07:18" },
+  { authorized: true, confidence: 0.87, id: 3, name: "Bian", role: "Dosen", timestamp: "2025-12-13 13:02:44" },
   { authorized: true, confidence: 0.84, id: 4, name: "Dinda", role: "Aslab", timestamp: "2025-12-11 14:31:55" },
   { authorized: true, confidence: 0.81, id: 5, name: "Raka", role: "Guest", timestamp: "2025-12-10 10:12:01" },
   { authorized: false, confidence: 0.18, id: 6, name: "Unknown", role: "Guest", timestamp: "2025-12-09 18:45:09" },
