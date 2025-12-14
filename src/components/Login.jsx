@@ -3,32 +3,7 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import Logo from "../assets/Logo.png";
 import { login as loginService } from "../services/authService";
-
-const ModalPopup = ({ open, type = "success", message, onClose }) => {
-  if (!open) return null;
-
-  const isSuccess = type === "success";
-
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="w-[90%] max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-        <h3 className={`text-lg font-semibold ${isSuccess ? "text-green-700" : "text-red-700"}`}>
-          {isSuccess ? "Success" : "Failed to Login"}
-        </h3>
-
-        <p className="mt-2 text-sm text-gray-700 leading-relaxed">{message}</p>
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-5 w-full rounded-lg bg-primary-black py-2 text-sm font-semibold text-white hover:bg-primary-yellow hover:text-primary-black transition-colors"
-        >
-          OK
-        </button>
-      </div>
-    </div>
-  );
-};
+import AuthPopup from "./AuthPopup"; 
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate();
@@ -45,10 +20,12 @@ const Login = ({ onLogin }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState("error");
   const [modalMessage, setModalMessage] = useState("");
+  const [modalTitle, setModalTitle] = useState("");
 
-  const showModal = (type, message) => {
+  const showModal = (type, message, title) => {
     setModalType(type);
     setModalMessage(message);
+    setModalTitle(title || "");
     setModalOpen(true);
   };
 
@@ -77,22 +54,25 @@ const Login = ({ onLogin }) => {
       const payload = { username: username.trim(), password: password.trim() };
       const res = await loginService(payload);
 
-      onLogin?.({
-        username: payload.username,
-        raw: res,
-      });
+      const userFromBackend = {
+        id: res?.data?.id,
+        username: res?.data?.username,
+        role: res?.data?.role,
+      };
+
+      localStorage.setItem("user", JSON.stringify(userFromBackend));
+      onLogin?.(userFromBackend);
 
       navigate("/dashboard");
     } catch (err) {
-      const status = err?.response?.data?.status; 
+      const status = err?.response?.data?.status;
       const backendMsg =
         err?.response?.data?.error ||
         err?.response?.data?.message ||
-        err?.message ||
-        "Failed to login. Please try again.";
+        err?.message;
 
       if (status === "pending" || status === "rejected") {
-        showModal("error", backendMsg);
+        showModal("error", backendMsg, "Failed to Login");
         return;
       }
 
@@ -109,9 +89,10 @@ const Login = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen bg-secondary-gray flex items-center justify-center relative overflow-hidden">
-      <ModalPopup
+      <AuthPopup
         open={modalOpen}
         type={modalType}
+        title={modalTitle || (modalType === "success" ? "Success" : "Failed to Login")}
         message={modalMessage}
         onClose={() => setModalOpen(false)}
       />

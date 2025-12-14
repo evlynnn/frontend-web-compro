@@ -1,38 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import Logo from "../assets/Logo.png";
 import { registerUser } from "../services/authService";
-
-const ModalPopup = ({ open, type = "success", message, onClose }) => {
-  if (!open) return null;
-
-  const isSuccess = type === "success";
-
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="w-[90%] max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-        <h3
-          className={`text-lg font-semibold ${
-            isSuccess ? "text-green-700" : "text-red-700"
-          }`}
-        >
-          {isSuccess ? "Success" : "Failed to Register"}
-        </h3>
-
-        <p className="mt-2 text-sm text-gray-700 leading-relaxed">{message}</p>
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-5 w-full rounded-lg bg-primary-black py-2 text-sm font-semibold text-white hover:bg-primary-yellow hover:text-primary-black transition-colors"
-        >
-          OK
-        </button>
-      </div>
-    </div>
-  );
-};
+import AuthPopup from "./AuthPopup";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -53,16 +24,19 @@ const Register = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState("success");
   const [modalMessage, setModalMessage] = useState("");
+  const [modalTitle, setModalTitle] = useState("");
 
-  const showModal = (type, message) => {
+  const showModal = (type, message, title) => {
     setModalType(type);
     setModalMessage(message);
+    setModalTitle(title || "");
     setModalOpen(true);
   };
 
   const parseRegisterError = (err) => {
     const backendError =
-      err?.response?.data?.error ||   
+      err?.response?.data?.error ||
+      err?.response?.data?.message ||
       err?.message;
 
     const lowered = String(backendError).toLowerCase();
@@ -71,9 +45,7 @@ const Register = () => {
       lowered.includes("username") &&
       (lowered.includes("exist") || lowered.includes("already") || lowered.includes("duplicate"));
 
-    const msg = usernameTaken
-      ? "Username already exists"
-      : backendError || "Failed to register. Please try again.";
+    const msg = backendError;
 
     return { msg, usernameTaken };
   };
@@ -129,7 +101,7 @@ const Register = () => {
         confirmPassword: confirmPass,
       };
 
-      await registerUser(payload);
+      const res = await registerUser(payload);
 
       setUsername("");
       setPassword("");
@@ -137,12 +109,12 @@ const Register = () => {
       setShowPassword(false);
       setShowConfirmPass(false);
 
-      // ✅ POPUP hanya untuk success
-      showModal("success", "User created successfully, wait for verifier approval.");
+      const backendMessage = res?.message;
+
+      showModal("success", backendMessage, "Success");
     } catch (err) {
       const { msg, usernameTaken } = parseRegisterError(err);
 
-      // ✅ ERROR: tidak pakai popup sama sekali
       if (usernameTaken) {
         setErrorUsername(msg);
       } else {
@@ -162,16 +134,15 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-secondary-gray flex items-center justify-center relative overflow-hidden">
-      <ModalPopup
+      <AuthPopup
         open={modalOpen}
         type={modalType}
+        title={modalTitle || (modalType === "success" ? "Success" : "Failed to Register")}
         message={modalMessage}
         onClose={() => setModalOpen(false)}
       />
 
-      {/* Register Card */}
       <div className="relative z-10 w-full max-w-md px-6 sm:px-10 py-10 sm:py-12 bg-primary-white rounded-3xl shadow-xl text-center">
-        {/* Logo */}
         <div className="mb-5 flex flex-col items-center">
           <div className="rounded-full p-3 bg-white/60 shadow-sm ring-2 ring-gray-300">
             <img src={Logo} alt="App Logo" className="w-18 h-18 object-contain" />
@@ -186,7 +157,6 @@ const Register = () => {
           Register to access the monitoring and analytics dashboard.
         </p>
 
-        {/* FORM */}
         <form className="space-y-5 text-left" onSubmit={handleSubmit}>
           {/* Username */}
           <div className="space-y-1">
@@ -199,7 +169,6 @@ const Register = () => {
               onChange={(e) => {
                 const val = (e.target.value || "").toLowerCase();
                 setUsername(val);
-
                 if (errorUsername) setErrorUsername("");
               }}
               className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 
@@ -220,7 +189,6 @@ const Register = () => {
           {/* Password */}
           <div className="space-y-1">
             <label className="block text-sm font-medium text-primary-black">Password</label>
-
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -260,10 +228,7 @@ const Register = () => {
 
           {/* Confirm Password */}
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-primary-black">
-              Confirm Password
-            </label>
-
+            <label className="block text-sm font-medium text-primary-black">Confirm Password</label>
             <div className="relative">
               <input
                 type={showConfirmPass ? "text" : "password"}
@@ -290,18 +255,13 @@ const Register = () => {
                   isSubmitting ? "opacity-60 cursor-not-allowed" : ""
                 }`}
               >
-                {showConfirmPass ? (
-                  <VisibilityOff fontSize="small" />
-                ) : (
-                  <Visibility fontSize="small" />
-                )}
+                {showConfirmPass ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
               </button>
             </div>
 
             {errorConfirm && <p className="text-red-500 text-xs mt-1">{errorConfirm}</p>}
           </div>
 
-          {/* Register Button */}
           <button
             type="submit"
             disabled={isSubmitting}
@@ -316,7 +276,6 @@ const Register = () => {
           </button>
         </form>
 
-        {/* Redirect to Login */}
         <p className="mt-4 text-sm text-center text-primary-black">
           Already have an account?{" "}
           <button

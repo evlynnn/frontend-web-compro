@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
 import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
 import Logo from "../assets/Logo.png";
+import LogoutModal from "./LogoutModal";
 
 const ThemeToggleSwitch = ({ theme = "dark", setTheme }) => {
   const isDark = theme === "dark";
@@ -47,84 +48,28 @@ const ThemeToggleSwitch = ({ theme = "dark", setTheme }) => {
   );
 };
 
-const ConfirmLogoutModal = ({ open, onClose, onConfirm, theme = "dark" }) => {
-  if (!open) return null;
-
-  const isDark = theme === "dark";
-
-  return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center px-4">
-      <button
-        type="button"
-        onClick={onClose}
-        className="absolute inset-0 bg-black/70"
-        aria-label="Close logout confirmation"
-      />
-
-      <div
-        role="dialog"
-        aria-modal="true"
-        className={[
-          "relative w-full max-w-sm rounded-2xl border shadow-xl",
-          "p-5",
-          isDark
-            ? "bg-primary-black border-white/10 text-white"
-            : "bg-white border-black/10 text-primary-black",
-        ].join(" ")}
-      >
-        <div className="flex items-start gap-3">
-          <div
-            className={[
-              "mt-0.5 w-9 h-9 rounded-xl flex items-center justify-center",
-              isDark ? "bg-white/5" : "bg-black/5",
-            ].join(" ")}
-          >
-            <span className={isDark ? "text-red-400" : "text-red-600"}>!</span>
-          </div>
-
-          <div className="flex-1">
-            <h3 className="text-base font-bold">Confirm Logout</h3>
-            <p className={["mt-1 text-sm", isDark ? "text-white/70" : "text-black/70"].join(" ")}>
-              Are you sure you want to logout?
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-5 flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className={[
-              "px-4 py-2 rounded-xl font-semibold transition",
-              isDark
-                ? "bg-white/5 text-white/80 hover:bg-white/10"
-                : "bg-black/5 text-black/80 hover:bg-black/10",
-            ].join(" ")}
-          >
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="px-4 py-2 rounded-xl font-semibold transition bg-red-500/15 text-red-400 hover:bg-red-500/25"
-          >
-            Yes, Logout
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const Sidebar = (props) => {
   const {
-    activeSection, // hanya meaningful saat di /dashboard
+    activeSection,
     theme = "dark",
     setTheme,
-    userName = "Evelyn",
-    userRole = "Verificator",
+    userName,
+    userRole,
   } = props;
+
+  const storedUserRaw = localStorage.getItem("user");
+  let storedUser = null;
+  try {
+    storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
+  } catch (_) {
+    storedUser = null;
+  }
+
+  const storedName = storedUser?.username;
+  const storedRole = storedUser?.role;
+
+  const finalUserName = userName ?? storedName ?? "-";
+  const finalUserRole = userRole ?? storedRole ?? "-";
 
   const logout = props.handleLogout || props.onLogout || (() => {});
   const navigate = useNavigate();
@@ -132,14 +77,14 @@ const Sidebar = (props) => {
 
   const [logoutOpen, setLogoutOpen] = useState(false);
 
-  const role = String(userRole).trim().toLowerCase();
+  const role = String(finalUserRole).trim().toLowerCase();
   const isVerificator = role === "verificator";
 
   // routes
   const DASHBOARD_PATH = "/dashboard";
   const USER_REQUEST_PATH = "/register-request";
   const RESET_PASSWORD_PATH = "/reset-password-request";
-  const LOGGING_PATH = "/logging"; // <- samakan dengan route logging kamu
+  const LOGGING_PATH = "/logging";
   const LOGIN_PATH = "/";
 
   const isOnDashboard = location.pathname === DASHBOARD_PATH;
@@ -147,12 +92,6 @@ const Sidebar = (props) => {
 
   const isRouteActive = (path) => location.pathname === path;
 
-  /**
-   * ACTIVE MENU LOGIC:
-   * - kalau di dashboard: pakai activeSection (scroll based)
-   * - kalau di page lain: coba ambil state.fromSection
-   * - khusus logging page: default aktif "logs"
-   */
   const derivedActiveSection =
     isOnDashboard
       ? activeSection
@@ -168,11 +107,6 @@ const Sidebar = (props) => {
     ].join(" ");
   };
 
-  /**
-   * KUNCI FIX:
-   * Menu Camera/Logs/Analytics harus bisa diklik dari mana pun.
-   * Kalau bukan di dashboard -> navigate ke dashboard + state scrollTo
-   */
   const handleDashboardSectionClick = (section) => {
     if (!isOnDashboard) {
       navigate(DASHBOARD_PATH, {
@@ -181,7 +115,7 @@ const Sidebar = (props) => {
       });
       return;
     }
-    // kalau sudah di dashboard, pakai scroll function dari parent jika ada
+
     const goTo = props.scrollToSection || props.onScrollToSection;
     if (typeof goTo === "function") goTo(section);
   };
@@ -268,15 +202,15 @@ const Sidebar = (props) => {
 
         <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-3">
           <div className="flex flex-col">
-            <span className="text-sm font-semibold">{userName}</span>
-            <span className="text-[11px] text-white/60">{userRole}</span>
+            <span className="text-sm font-semibold">{finalUserName}</span>
+            <span className="text-[11px] text-white/60">{finalUserRole}</span>
           </div>
 
           <ThemeToggleSwitch theme={theme} setTheme={setTheme} />
         </div>
       </aside>
 
-      <ConfirmLogoutModal
+      <LogoutModal
         open={logoutOpen}
         onClose={() => setLogoutOpen(false)}
         onConfirm={handleConfirmLogout}

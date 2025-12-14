@@ -9,12 +9,16 @@ export const login = async (userData) => {
     });
 
     const token = response?.data?.token;
+    const user = response?.data?.data;
+
     if (token) localStorage.setItem("token", token);
+    if (user?.username) localStorage.setItem("userName", user.username);
+    if (user?.role) localStorage.setItem("userRole", user.role);
 
     return response.data;
   } catch (err) {
     console.error("Failed to Login:", err?.response || err?.message);
-    throw err; 
+    throw err;
   }
 };
 
