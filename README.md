@@ -10,7 +10,7 @@ The frontend is responsible for presenting monitoring data, managing authenticat
 
 - User authentication (Login & Register)
 - Access monitoring dashboard
-- Data visualization (Area Charts, Bar Charts)
+- Data visualization (Area Charts, Bar Charts, Line Charts)
 - User registration request management
 - Password reset request management
 - Role-based UI and route protection
@@ -53,26 +53,26 @@ The frontend is responsible for presenting monitoring data, managing authenticat
 
 ## Project Structure
 
+```text
 src/
-├── assets/ # Static assets (logos, icons)
-├── components/ # Reusable UI components
-├── pages/ # Application pages
-├── services/ # API service layer
-├── App.jsx # Application routing
-└── main.jsx # Application entry point
-
-
----
+├── assets/        # Static assets (logos, icons)
+├── components/    # Reusable UI components
+├── pages/         # Application pages
+├── services/      # API service layer
+├── App.jsx        # Application routing
+└── main.jsx       # Application entry point
+```
 
 ## ⚙️ Getting Started
 
 ### Install Dependencies
 ```bash
 npm install
+```
 
-Run Development Server
+### Run Development Server
+```bash
 npm run dev
-
 ```
 
 ## Frontend Security Notes
