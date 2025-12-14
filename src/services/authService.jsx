@@ -23,6 +23,7 @@ export const registerUser = async (userData) => {
     const response = await axios.post(`${baseUrl}/users/register`, userData, {
       headers: { "Content-Type": "application/json" },
     });
+    
     return response.data;
   } catch (err) {
     console.error("Failed to register user:", err?.response || err?.message);

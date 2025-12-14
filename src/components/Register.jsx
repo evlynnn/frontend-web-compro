@@ -17,7 +17,7 @@ const ModalPopup = ({ open, type = "success", message, onClose }) => {
             isSuccess ? "text-green-700" : "text-red-700"
           }`}
         >
-          {isSuccess ? "Success" : "Error"}
+          {isSuccess ? "Success" : "Failed to Register"}
         </h3>
 
         <p className="mt-2 text-sm text-gray-700 leading-relaxed">{message}</p>

@@ -4,6 +4,32 @@ import { useNavigate } from "react-router-dom";
 import Logo from "../assets/Logo.png";
 import { login as loginService } from "../services/authService";
 
+const ModalPopup = ({ open, type = "success", message, onClose }) => {
+  if (!open) return null;
+
+  const isSuccess = type === "success";
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="w-[90%] max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+        <h3 className={`text-lg font-semibold ${isSuccess ? "text-green-700" : "text-red-700"}`}>
+          {isSuccess ? "Success" : "Failed to Login"}
+        </h3>
+
+        <p className="mt-2 text-sm text-gray-700 leading-relaxed">{message}</p>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-5 w-full rounded-lg bg-primary-black py-2 text-sm font-semibold text-white hover:bg-primary-yellow hover:text-primary-black transition-colors"
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const Login = ({ onLogin }) => {
   const navigate = useNavigate();
 
@@ -13,16 +39,26 @@ const Login = ({ onLogin }) => {
 
   const [errorUsername, setErrorUsername] = useState("");
   const [errorPassword, setErrorPassword] = useState("");
-  const [apiError, setApiError] = useState("");
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState("error");
+  const [modalMessage, setModalMessage] = useState("");
+
+  const showModal = (type, message) => {
+    setModalType(type);
+    setModalMessage(message);
+    setModalOpen(true);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    let valid = true;
     setErrorUsername("");
     setErrorPassword("");
-    setApiError("");
+
+    let valid = true;
 
     if (!username.trim()) {
       setErrorUsername("Username cannot be empty");
@@ -43,14 +79,29 @@ const Login = ({ onLogin }) => {
 
       onLogin?.({
         username: payload.username,
-        // role: res?.data?.role,
-        // token: localStorage.getItem("token"),
         raw: res,
       });
 
       navigate("/dashboard");
     } catch (err) {
-      setApiError(err?.message || "Failed to login. Please try again.");
+      const status = err?.response?.data?.status; 
+      const backendMsg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to login. Please try again.";
+
+      if (status === "pending" || status === "rejected") {
+        showModal("error", backendMsg);
+        return;
+      }
+
+      if (status === "reset_pending") {
+        setErrorUsername(backendMsg);
+        return;
+      }
+
+      setErrorPassword(backendMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -58,6 +109,13 @@ const Login = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen bg-secondary-gray flex items-center justify-center relative overflow-hidden">
+      <ModalPopup
+        open={modalOpen}
+        type={modalType}
+        message={modalMessage}
+        onClose={() => setModalOpen(false)}
+      />
+
       {/* Login Card */}
       <div className="relative z-10 w-full max-w-md px-6 sm:px-10 py-10 sm:py-12 bg-primary-white rounded-3xl shadow-xl text-center">
         {/* Logo */}
@@ -75,12 +133,6 @@ const Login = ({ onLogin }) => {
           Please log in to access the monitoring and analytics dashboard.
         </p>
 
-        {apiError && (
-          <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-left">
-            <p className="text-red-600 text-sm">{apiError}</p>
-          </div>
-        )}
-
         <form className="space-y-5 text-left" onSubmit={handleSubmit}>
           {/* Username */}
           <div className="space-y-1">
@@ -92,7 +144,7 @@ const Login = ({ onLogin }) => {
               onChange={(e) => {
                 setUsername(e.target.value);
                 if (errorUsername) setErrorUsername("");
-                if (apiError) setApiError("");
+                if (errorPassword) setErrorPassword("");
               }}
               className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 
                 ${errorUsername ? "border-red-500 focus:ring-red-400" : "border-gray-300 focus:ring-primary-yellow"}`}
@@ -114,7 +166,7 @@ const Login = ({ onLogin }) => {
                 onChange={(e) => {
                   setPassword(e.target.value);
                   if (errorPassword) setErrorPassword("");
-                  if (apiError) setApiError("");
+                  if (errorUsername) setErrorUsername("");
                 }}
                 className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 
                   ${errorPassword ? "border-red-500 focus:ring-red-400" : "border-gray-300 focus:ring-primary-yellow"}`}
@@ -122,7 +174,6 @@ const Login = ({ onLogin }) => {
                 disabled={isSubmitting}
               />
 
-              {/* Toggle visibility */}
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
