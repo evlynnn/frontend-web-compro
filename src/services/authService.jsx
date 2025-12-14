@@ -5,7 +5,7 @@ const baseUrl = import.meta.env.VITE_BASE_URL;
 export const login = async (userData) => {
   try {
     const response = await axios.post(`${baseUrl}/users/login`, userData, {
-        headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
     });
 
     const token = response?.data?.token;
@@ -23,10 +23,24 @@ export const registerUser = async (userData) => {
     const response = await axios.post(`${baseUrl}/users/register`, userData, {
       headers: { "Content-Type": "application/json" },
     });
-    
+
     return response.data;
   } catch (err) {
     console.error("Failed to register user:", err?.response || err?.message);
+    throw err; 
+  }
+};
+
+export const resetRequest = async (userData) => {
+  try {
+    const response = await axios.post(`${baseUrl}/users/reset_request`, userData, {
+      headers: { "Content-Type": "application/json" },
+    });
+
+    return response.data; 
+  } catch (err) {
+
+    console.error("Failed to reset password:", err?.response || err?.message);
     throw err; 
   }
 };
