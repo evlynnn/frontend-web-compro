@@ -27,7 +27,7 @@ export default function App() {
       <Route path="/dashboard" element={<Dashboard {...sharedProps} />} />
       <Route path="/register-request" element={<RegisterRequest {...sharedProps} />} />
       <Route path="/reset-password-request" element={<ResetPasswordRequest {...sharedProps} />} />
-      <Route path="/logging" element={<Logging />} />
+      <Route path="/logging" element={<Logging {...sharedProps}/>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

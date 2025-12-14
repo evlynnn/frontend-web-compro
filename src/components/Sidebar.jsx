@@ -54,7 +54,6 @@ const ConfirmLogoutModal = ({ open, onClose, onConfirm, theme = "dark" }) => {
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center px-4">
-      {/* Backdrop */}
       <button
         type="button"
         onClick={onClose}
@@ -62,7 +61,6 @@ const ConfirmLogoutModal = ({ open, onClose, onConfirm, theme = "dark" }) => {
         aria-label="Close logout confirmation"
       />
 
-      {/* Modal */}
       <div
         role="dialog"
         aria-modal="true"
@@ -98,7 +96,9 @@ const ConfirmLogoutModal = ({ open, onClose, onConfirm, theme = "dark" }) => {
             onClick={onClose}
             className={[
               "px-4 py-2 rounded-xl font-semibold transition",
-              isDark ? "bg-white/5 text-white/80 hover:bg-white/10" : "bg-black/5 text-black/80 hover:bg-black/10",
+              isDark
+                ? "bg-white/5 text-white/80 hover:bg-white/10"
+                : "bg-black/5 text-black/80 hover:bg-black/10",
             ].join(" ")}
           >
             Cancel
@@ -119,16 +119,14 @@ const ConfirmLogoutModal = ({ open, onClose, onConfirm, theme = "dark" }) => {
 
 const Sidebar = (props) => {
   const {
-    activeSection,
+    activeSection, // hanya meaningful saat di /dashboard
     theme = "dark",
     setTheme,
     userName = "Evelyn",
     userRole = "Verificator",
   } = props;
 
-  const goTo = props.scrollToSection || props.onScrollToSection || (() => {});
   const logout = props.handleLogout || props.onLogout || (() => {});
-
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -141,28 +139,28 @@ const Sidebar = (props) => {
   const DASHBOARD_PATH = "/dashboard";
   const USER_REQUEST_PATH = "/register-request";
   const RESET_PASSWORD_PATH = "/reset-password-request";
-  const LOGIN_PATH = "/"; // asumsi route login kamu "/"
+  const LOGGING_PATH = "/logging"; // <- samakan dengan route logging kamu
+  const LOGIN_PATH = "/";
 
-  const isOnSubPage =
-    location.pathname === USER_REQUEST_PATH ||
-    location.pathname === RESET_PASSWORD_PATH;
+  const isOnDashboard = location.pathname === DASHBOARD_PATH;
+  const isOnLogging = location.pathname === LOGGING_PATH;
 
   const isRouteActive = (path) => location.pathname === path;
 
-  const handleDashboardSectionClick = (section) => {
-    if (isOnSubPage) {
-      navigate(DASHBOARD_PATH, {
-        state: { scrollTo: section },
-        replace: false,
-      });
-      return;
-    }
-    goTo(section);
-  };
+  /**
+   * ACTIVE MENU LOGIC:
+   * - kalau di dashboard: pakai activeSection (scroll based)
+   * - kalau di page lain: coba ambil state.fromSection
+   * - khusus logging page: default aktif "logs"
+   */
+  const derivedActiveSection =
+    isOnDashboard
+      ? activeSection
+      : location.state?.fromSection || (isOnLogging ? "logs" : null);
 
   const navBtnClass = (key, forceActive) => {
     const active =
-      typeof forceActive === "boolean" ? forceActive : activeSection === key;
+      typeof forceActive === "boolean" ? forceActive : derivedActiveSection === key;
 
     return [
       "w-full text-left px-3 py-2 rounded-2xl font-semibold transition",
@@ -170,18 +168,29 @@ const Sidebar = (props) => {
     ].join(" ");
   };
 
+  /**
+   * KUNCI FIX:
+   * Menu Camera/Logs/Analytics harus bisa diklik dari mana pun.
+   * Kalau bukan di dashboard -> navigate ke dashboard + state scrollTo
+   */
+  const handleDashboardSectionClick = (section) => {
+    if (!isOnDashboard) {
+      navigate(DASHBOARD_PATH, {
+        state: { scrollTo: section },
+        replace: false,
+      });
+      return;
+    }
+    // kalau sudah di dashboard, pakai scroll function dari parent jika ada
+    const goTo = props.scrollToSection || props.onScrollToSection;
+    if (typeof goTo === "function") goTo(section);
+  };
+
   const handleLogoutClick = () => setLogoutOpen(true);
 
   const handleConfirmLogout = () => {
     setLogoutOpen(false);
-
-    // optional: bersihin token/localStorage kalau kamu pakai
-    // localStorage.removeItem("token");
-
-    // panggil callback logout dari parent (kalau ada)
     logout();
-
-    // balik ke login
     navigate(LOGIN_PATH, { replace: true });
   };
 

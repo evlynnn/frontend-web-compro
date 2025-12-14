@@ -379,7 +379,13 @@ const Dashboard = (props) => {
               >
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold">Recent Door Access</h3>
-                  <button className="text-[11px] text-primary-yellow font-medium">View all</button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/logging", { state: { preset: "today" } })}
+                    className="text-[11px] text-primary-yellow font-medium hover:underline"
+                  >
+                    View all
+                  </button>
                 </div>
 
                 <div
