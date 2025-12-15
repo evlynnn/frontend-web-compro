@@ -1,4 +1,4 @@
-const AuthPopup = ({
+const PopupModal = ({
   open,
   type = "success", 
   title,
@@ -38,4 +38,4 @@ const AuthPopup = ({
   );
 };
 
-export default AuthPopup;
+export default PopupModal;

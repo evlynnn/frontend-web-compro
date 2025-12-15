@@ -1,18 +1,32 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Sidebar from "./Sidebar";
-
-const initialRequests = [
-  { id: 1, username: "akbar", userRole: "Aslab", requestedAt: "2025-12-10 14:21", status: "Pending" },
-  { id: 2, username: "aprilianza", userRole: "Tamu", requestedAt: "2025-12-11 09:05", status: "Pending" },
-  { id: 3, username: "iksan", userRole: "Dosen", requestedAt: "2025-12-11 16:40", status: "Pending" },
-  { id: 4, username: "evlynnn", userRole: "Aslab", requestedAt: "2025-12-12 08:12", status: "Pending" },
-];
+import PopupModal from "./PopupModal";
+import { getPendingUsers, approveUser, rejectUser } from "../services/userService";
 
 const APP_ROLE_OPTIONS = ["Administrator", "Verificator"];
 
-const RegisterRequest = (props) => {
-  const [requests, setRequests] = useState(initialRequests);
+const mapUiRoleToBackendRole = (uiRole) => {
+  if (uiRole === "Administrator") return "administrator";
+  if (uiRole === "Verificator") return "verificator";
+  return "";
+};
 
+const formatRequestedAt = (raw) => {
+  if (!raw) return "-";
+  try {
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return String(raw);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(
+      d.getMinutes()
+    )}`;
+  } catch {
+    return String(raw);
+  }
+};
+
+const RegisterRequest = (props) => {
+  const [requests, setRequests] = useState([]);
   const [search, setSearch] = useState("");
 
   const [appRoleModalOpen, setAppRoleModalOpen] = useState(false);
@@ -24,10 +38,83 @@ const RegisterRequest = (props) => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [selectedAppRole, setSelectedAppRole] = useState("");
 
+  const [loading, setLoading] = useState(false);
+  const [pageError, setPageError] = useState("");
+
+  const [actionLoadingId, setActionLoadingId] = useState(null);
+
+  const [popupOpen, setPopupOpen] = useState(false);
+  const [popupType, setPopupType] = useState("success");
+  const [popupTitle, setPopupTitle] = useState("");
+  const [popupMessage, setPopupMessage] = useState("");
+
+  const showPopup = ({ type = "success", title = "", message = "" }) => {
+    setPopupType(type);
+    setPopupTitle(title);
+    setPopupMessage(message);
+    setPopupOpen(true);
+  };
+
+  const closePopup = () => setPopupOpen(false);
+
+  const extractErrMsg = (err, fallback = "Something went wrong") => {
+    return err?.response?.data?.error || err?.response?.data?.message || err?.message || fallback;
+  };
+
+  const fetchPending = async ({ silent = false } = {}) => {
+    setLoading(true);
+    setPageError("");
+    try {
+      const res = await getPendingUsers();
+      const users = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+
+      const normalized = users.map((u) => ({
+        id: u.id,
+        username: u.username,
+        userRole: u.role,
+        requestedAt: u.created_at || u.createdAt || u.CreatedAt || u.requested_at || u.requestedAt,
+        needsReset: !!(u.needs_reset ?? u.needsReset),
+        status:
+          u.role === "rejected" || u.role === "Rejected"
+            ? "Rejected"
+            : u.role !== "pending" && !(u.needs_reset ?? u.needsReset)
+            ? "Accepted"
+            : "Pending",
+      }));
+
+      const onlyPendingAction = normalized.filter((x) => x.userRole === "pending" || x.needsReset === true);
+
+      setRequests(onlyPendingAction);
+
+      if (!silent) {
+        showPopup({
+          type: "success",
+          title: "Loaded",
+          message: "Register requests were loaded successfully.",
+        });
+      }
+    } catch (err) {
+      const msg = extractErrMsg(err, "Failed to load pending users");
+      setPageError(msg);
+
+      showPopup({
+        type: "error",
+        title: "Failed",
+        message: msg,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPending({ silent: true });
+  }, []);
+
   const filteredRequests = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return requests;
-    return requests.filter((r) => r.username.toLowerCase().includes(q));
+    return requests.filter((r) => (r.username || "").toLowerCase().includes(q));
   }, [requests, search]);
 
   const openAssignAppRoleModal = (req) => {
@@ -54,18 +141,39 @@ const RegisterRequest = (props) => {
     setSelectedAppRole("");
   };
 
-  const confirmAccept = () => {
+  const confirmAccept = async () => {
     if (!selectedRequest || !selectedAppRole) return;
 
-    setRequests((prev) =>
-      prev.map((item) =>
-        item.id === selectedRequest.id
-          ? { ...item, status: "Accepted", assignedAppRole: selectedAppRole }
-          : item
-      )
-    );
+    const backendRole = mapUiRoleToBackendRole(selectedAppRole);
+    if (!backendRole) return;
 
-    closeConfirmModal();
+    setActionLoadingId(selectedRequest.id);
+    try {
+      const res = await approveUser(selectedRequest.id, backendRole);
+
+      await fetchPending({ silent: true });
+
+      showPopup({
+        type: "success",
+        title: "Success",
+        message: res?.message || `User "${selectedRequest.username}" was approved as ${backendRole}.`,
+      });
+
+      closeConfirmModal();
+    } catch (err) {
+      const msg = extractErrMsg(err, "Approve failed");
+      setPageError(msg);
+
+      showPopup({
+        type: "error",
+        title: "Failed",
+        message: msg,
+      });
+
+      closeConfirmModal();
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   const openRejectConfirm = (req) => {
@@ -78,16 +186,36 @@ const RegisterRequest = (props) => {
     setSelectedRejectRequest(null);
   };
 
-  const confirmReject = () => {
+  const confirmReject = async () => {
     if (!selectedRejectRequest) return;
 
-    setRequests((prev) =>
-      prev.map((item) =>
-        item.id === selectedRejectRequest.id ? { ...item, status: "Rejected" } : item
-      )
-    );
+    setActionLoadingId(selectedRejectRequest.id);
+    try {
+      const res = await rejectUser(selectedRejectRequest.id);
 
-    closeRejectConfirm();
+      await fetchPending({ silent: true });
+
+      showPopup({
+        type: "success",
+        title: "Success",
+        message: res?.message || `User "${selectedRejectRequest.username}" was rejected successfully.`,
+      });
+
+      closeRejectConfirm();
+    } catch (err) {
+      const msg = extractErrMsg(err, "Reject failed");
+      setPageError(msg);
+
+      showPopup({
+        type: "error",
+        title: "Failed",
+        message: msg,
+      });
+
+      closeRejectConfirm();
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   return (
@@ -98,20 +226,25 @@ const RegisterRequest = (props) => {
           <section className="rounded-3xl bg-white text-black shadow-sm border border-black/10 p-5 md:p-6 space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h1 className="text-2xl font-semibold">Register Request</h1>
+                <h1 className="text-2xl font-semibold">Register Requests</h1>
                 <p className="text-sm text-black/60">
-                  Validasi pendaftaran user (Accept/Reject). Hak akses aplikasi dipilih saat Accept.
+                  Review user registration requests. Role is assigned when accepting.
                 </p>
+
+                {pageError && (
+                  <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {pageError}
+                  </div>
+                )}
               </div>
 
-              {/* Search */}
               <div className="w-full sm:w-[320px]">
                 <label className="text-xs text-black/60">Search by username</label>
                 <div className="mt-1 flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2">
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="contoh: iksan"
+                    placeholder="Search Here..."
                     className="w-full bg-transparent text-sm outline-none placeholder:text-black/30"
                   />
                   {search.trim() && (
@@ -128,80 +261,103 @@ const RegisterRequest = (props) => {
               </div>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto rounded-xl border border-black/10 bg-white">
-              <table className="min-w-full text-sm">
-                <thead className="bg-white">
-                  <tr className="border-b border-black/10">
-                    <th className="px-4 py-3 text-left font-bold text-black/70">Username</th>
-                    <th className="px-4 py-3 text-left font-bold text-black/70">Requested At</th>
-                    <th className="px-4 py-3 text-left font-bold text-black/70">Status</th>
-                    <th className="px-4 py-3 text-center font-bold text-black/70">Action</th>
-                  </tr>
-                </thead>
+            {loading ? (
+              <div className="rounded-xl border border-black/10 bg-white p-6 text-sm text-black/60">
+                Loading data from the database...
+              </div>
+            ) : (
+              <div className="rounded-xl border border-black/10 bg-white">
+                <div className="max-h-[420px] overflow-y-auto overflow-x-auto rounded-xl">
+                  <table className="min-w-full text-sm">
+                    <thead
+                      className="
+                        sticky top-0 z-20 bg-white
+                        border-b border-black/10
+                        shadow-[0_1px_0_0_rgba(0,0,0,0.08)]
+                      "
+                    >
+                      <tr>
+                        <th className="px-4 py-3 text-left font-bold text-black/70">Username</th>
+                        <th className="px-4 py-3 text-left font-bold text-black/70">Requested At</th>
+                        <th className="px-4 py-3 text-left font-bold text-black/70">Status</th>
+                        <th className="px-4 py-3 text-center font-bold text-black/70">Action</th>
+                      </tr>
+                    </thead>
 
-                <tbody className="divide-y divide-black/10">
-                  {filteredRequests.map((item) => (
-                    <tr key={item.id} className="hover:bg-black/[0.03]">
-                      <td className="px-4 py-3 font-medium">{item.username}</td>
-                      <td className="px-4 py-3 text-black/70">{item.requestedAt}</td>
+                    <tbody className="divide-y divide-black/10">
+                      {filteredRequests.map((item) => {
+                        const isActing = actionLoadingId === item.id;
 
-                      <td className="px-4 py-3">
-                        <span
-                          className={[
-                            "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold",
-                            item.status === "Accepted"
-                              ? "bg-green-100 text-green-700"
-                              : item.status === "Rejected"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-yellow-100 text-yellow-800",
-                          ].join(" ")}
-                        >
-                          {item.status}
-                          {item.status === "Accepted" && item.assignedAppRole ? (
-                            <span className="ml-2 font-normal text-black/60">
-                              • {item.assignedAppRole}
-                            </span>
-                          ) : null}
-                        </span>
-                      </td>
+                        return (
+                          <tr key={item.id} className="hover:bg-black/[0.03]">
+                            <td className="px-4 py-3 font-medium">{item.username}</td>
+                            <td className="px-4 py-3 text-black/70">{formatRequestedAt(item.requestedAt)}</td>
 
-                      <td className="px-4 py-3">
-                        {item.status === "Pending" ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => openAssignAppRoleModal(item)}
-                              className="rounded-lg bg-[var(--color-chart-authorized)] px-3 py-1.5 text-xs font-semibold text-white hover:brightness-95"
-                            >
-                              Accept
-                            </button>
+                            <td className="px-4 py-3">
+                              <span
+                                className={[
+                                  "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold",
+                                  item.status === "Accepted"
+                                    ? "bg-green-100 text-green-700"
+                                    : item.status === "Rejected"
+                                    ? "bg-red-100 text-red-700"
+                                    : "bg-yellow-100 text-yellow-800",
+                                ].join(" ")}
+                              >
+                                {item.status}
+                                {item.needsReset ? (
+                                  <span className="ml-2 font-normal text-black/60">• Password Reset Request</span>
+                                ) : null}
+                              </span>
+                            </td>
 
-                            <button
-                              type="button"
-                              onClick={() => openRejectConfirm(item)}
-                              className="rounded-lg bg-[var(--color-chart-unauthorized)] px-3 py-1.5 text-xs font-semibold text-white hover:brightness-95"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="text-center text-xs text-black/40">No action</div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                            <td className="px-4 py-3">
+                              {item.status === "Pending" ? (
+                                <div className="flex items-center justify-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => openAssignAppRoleModal(item)}
+                                    disabled={isActing}
+                                    className={[
+                                      "rounded-lg bg-[var(--color-chart-authorized)] px-3 py-1.5 text-xs font-semibold text-white hover:brightness-95",
+                                      isActing ? "opacity-60 cursor-not-allowed" : "",
+                                    ].join(" ")}
+                                  >
+                                    {isActing ? "Processing..." : "Accept"}
+                                  </button>
 
-                  {filteredRequests.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-10 text-center text-black/50">
-                        Tidak ada data yang cocok.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => openRejectConfirm(item)}
+                                    disabled={isActing}
+                                    className={[
+                                      "rounded-lg bg-[var(--color-chart-unauthorized)] px-3 py-1.5 text-xs font-semibold text-white hover:brightness-95",
+                                      isActing ? "opacity-60 cursor-not-allowed" : "",
+                                    ].join(" ")}
+                                  >
+                                    {isActing ? "Processing..." : "Reject"}
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="text-center text-xs text-black/40">No action</div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {filteredRequests.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-10 text-center text-black/50">
+                            No matching data found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </section>
         </div>
 
@@ -213,9 +369,8 @@ const RegisterRequest = (props) => {
                 <div>
                   <h2 className="text-lg font-semibold">Assign Access Role</h2>
                   <p className="mt-1 text-sm text-black/60">
-                    Tentukan hak akses aplikasi untuk{" "}
+                    Select the application role for{" "}
                     <span className="font-semibold text-black">{selectedRequest?.username}</span>
-                    <span className="font-normal text-black/50"> (role: {selectedRequest?.userRole})</span>
                   </p>
                 </div>
                 <button
@@ -283,7 +438,7 @@ const RegisterRequest = (props) => {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-semibold">Confirmation</h2>
-                  <p className="mt-1 text-sm text-black/60">Pastikan data berikut sudah benar:</p>
+                  <p className="mt-1 text-sm text-black/60">Please confirm the details below:</p>
                 </div>
                 <button
                   type="button"
@@ -301,11 +456,11 @@ const RegisterRequest = (props) => {
                   <span className="font-semibold">{selectedRequest?.username}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-black/60">Role</span>
+                  <span className="text-black/60">Current Status</span>
                   <span className="font-semibold">{selectedRequest?.userRole}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-black/60">Hak Akses</span>
+                  <span className="text-black/60">Assigned Role</span>
                   <span className="font-semibold">{selectedAppRole}</span>
                 </div>
               </div>
@@ -336,13 +491,10 @@ const RegisterRequest = (props) => {
             <div className="relative w-full max-w-md rounded-2xl bg-white p-5 text-black shadow-xl">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold">Konfirmasi Penolakan</h2>
+                  <h2 className="text-lg font-semibold">Reject Confirmation</h2>
                   <p className="mt-1 text-sm text-black/60">
-                    Apakah kamu yakin ingin menolak request dengan username{" "}
-                    <span className="font-semibold text-black">
-                      {selectedRejectRequest?.username}
-                    </span>
-                    ?
+                    Are you sure you want to reject the request from{" "}
+                    <span className="font-semibold text-black">{selectedRejectRequest?.username}</span>?
                   </p>
                 </div>
                 <button
@@ -375,6 +527,15 @@ const RegisterRequest = (props) => {
           </div>
         )}
       </main>
+
+      <PopupModal
+        open={popupOpen}
+        type={popupType}
+        title={popupTitle}
+        message={popupMessage}
+        onClose={closePopup}
+        okText="OK"
+      />
     </div>
   );
 };

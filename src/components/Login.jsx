@@ -3,7 +3,7 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import Logo from "../assets/Logo.png";
 import { login as loginService } from "../services/authService";
-import AuthPopup from "./AuthPopup"; 
+import PopupModal from "./PopupModal"; 
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate();
@@ -89,7 +89,7 @@ const Login = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen bg-secondary-gray flex items-center justify-center relative overflow-hidden">
-      <AuthPopup
+      <PopupModal
         open={modalOpen}
         type={modalType}
         title={modalTitle || (modalType === "success" ? "Success" : "Failed to Login")}

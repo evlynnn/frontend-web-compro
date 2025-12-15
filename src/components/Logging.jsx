@@ -115,7 +115,6 @@ const Logging = (props) => {
 
   return (
     <div className="min-h-screen bg-primary-black text-primary-white">
-      {/* ✅ ini yang bikin menu "Door Access Logs" jadi kuning */}
       <Sidebar {...props} activeSection="logs" />
 
       <main className="ml-60 md:ml-64 px-4 py-6 md:px-8 md:py-8">

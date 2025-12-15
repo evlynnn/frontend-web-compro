@@ -16,7 +16,7 @@ export const getCurrent = () => {
 
 export const getPendingUsers = async () => {
   try {
-    const res = await axios.get(`${baseUrl}/api/users/pending`, {
+    const res = await axios.get(`${baseUrl}/users/pending`, {
       headers: { ...authHeaders() },
     });
 
@@ -30,7 +30,7 @@ export const getPendingUsers = async () => {
 export const approveUser = async (userId, role) => {
   try {
     const res = await axios.post(
-      `${baseUrl}/api/users/approve?id=${encodeURIComponent(userId)}`,
+      `${baseUrl}/users/approve?id=${encodeURIComponent(userId)}`,
       role ? { role } : {},
       { headers: { "Content-Type": "application/json", ...authHeaders() } }
     );
@@ -45,7 +45,7 @@ export const approveUser = async (userId, role) => {
 export const rejectUser = async (userId) => {
   try {
     const res = await axios.post(
-      `${baseUrl}/api/users/approve?id=${encodeURIComponent(userId)}&action=reject`,
+      `${baseUrl}/users/approve?id=${encodeURIComponent(userId)}&action=reject`,
       {},
       { headers: { "Content-Type": "application/json", ...authHeaders() } }
     );

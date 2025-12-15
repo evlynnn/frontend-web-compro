@@ -3,7 +3,7 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import Logo from "../assets/Logo.png";
 import { registerUser } from "../services/authService";
-import AuthPopup from "./AuthPopup";
+import PopupModal from "./PopupModal";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -134,7 +134,7 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-secondary-gray flex items-center justify-center relative overflow-hidden">
-      <AuthPopup
+      <PopupModal
         open={modalOpen}
         type={modalType}
         title={modalTitle || (modalType === "success" ? "Success" : "Failed to Register")}
