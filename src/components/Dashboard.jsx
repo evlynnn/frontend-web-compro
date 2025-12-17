@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   ResponsiveContainer,
@@ -12,6 +12,18 @@ import {
   Bar,
 } from "recharts";
 import Sidebar from "./Sidebar";
+import CameraStream from "./CameraStream";
+import useWebSocket from "../hooks/useWebSocket";
+import {
+  getStreamUrl,
+  getCameraStatus,
+  startCamera,
+  stopCamera,
+} from "../services/cameraService";
+import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+import StopRoundedIcon from "@mui/icons-material/StopRounded";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
 
 const logsFromBackend = [
   { authorized: true, confidence: 0.95, id: 1, name: "Iksan", role: "Aslab", timestamp: "2025-12-13 09:24:31" },
@@ -82,8 +94,8 @@ const Dashboard = (props) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const initialTarget = location.state?.scrollTo; 
-  const bootRef = useRef(false); 
+  const initialTarget = location.state?.scrollTo;
+  const bootRef = useRef(false);
 
   const [recapMode, setRecapMode] = useState("week");
   const [nowTick, setNowTick] = useState(Date.now());
@@ -100,6 +112,68 @@ const Dashboard = (props) => {
 
   const [activeSection, setActiveSection] = useState(initialTarget || "camera");
   const atBottomRef = useRef(false);
+
+  // Camera state
+  const [cameraStatus, setCameraStatus] = useState({ online: false, streaming: false });
+  const [cameraLoading, setCameraLoading] = useState(false);
+  const [streamError, setStreamError] = useState(false);
+  const [streamUrl, setStreamUrl] = useState(`${getStreamUrl()}?t=${Date.now()}`);
+  const [detectionEvents, setDetectionEvents] = useState([]);
+
+  // WebSocket for real-time detection events
+  const handleDetection = useCallback((event) => {
+    setDetectionEvents((prev) => [event, ...prev].slice(0, 10));
+  }, []);
+
+  const { isConnected: wsConnected, lastEvent } = useWebSocket(handleDetection);
+
+  // Fetch camera status on mount - skip polling when streaming to avoid connection issues
+  useEffect(() => {
+    if (cameraStatus.streaming) return; // Don't poll while streaming
+
+    const fetchStatus = async () => {
+      try {
+        const status = await getCameraStatus();
+        setCameraStatus(status);
+      } catch (err) {
+        console.error("Failed to fetch camera status:", err);
+      }
+    };
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 30000); // Reduce polling frequency
+    return () => clearInterval(interval);
+  }, [cameraStatus.streaming]);
+
+  const handleStartCamera = async () => {
+    setCameraLoading(true);
+    try {
+      await startCamera();
+      setStreamUrl(`${getStreamUrl()}?t=${Date.now()}`);
+      setStreamError(false);
+      setCameraStatus((prev) => ({ ...prev, streaming: true }));
+    } catch (err) {
+      console.error("Failed to start camera:", err);
+    } finally {
+      setCameraLoading(false);
+    }
+  };
+
+  const handleStopCamera = async () => {
+    setCameraLoading(true);
+    try {
+      await stopCamera();
+      setCameraStatus((prev) => ({ ...prev, streaming: false }));
+    } catch (err) {
+      console.error("Failed to stop camera:", err);
+    } finally {
+      setCameraLoading(false);
+    }
+  };
+
+  const handleRefreshStream = () => {
+    setStreamUrl(`${getStreamUrl()}?t=${Date.now()}`);
+    setStreamError(false);
+  };
 
   const scrollToSection = (key, behavior = "smooth") => {
     atBottomRef.current = false;
@@ -326,7 +400,7 @@ const Dashboard = (props) => {
   }, [logsToday]);
 
   const sidebarProps = {
-    ...props, 
+    ...props,
     activeSection,
     scrollToSection,
     handleLogout,
@@ -353,22 +427,123 @@ const Dashboard = (props) => {
                   </span>
                   <h2 className="text-lg md:text-xl font-bold mt-1">AI Lab Door Camera</h2>
                 </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="inline-flex h-2 w-2 rounded-full bg-green-500" />
-                  <span className="text-gray-500">Camera • Online</span>
-                </div>
-              </div>
-
-              <div className="relative overflow-hidden rounded-2xl bg-secondary-gray h-[55vh] md:h-[65vh] lg:h-[65vh]">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#fcb90b33,transparent_55%),radial-gradient(circle_at_bottom,#00000066,transparent_60%)]" />
-                <div className="relative z-10 h-full flex flex-col justify-between p-4">
-                  <div className="flex justify-between text-xs text-primary-white/80">
-                    <span className="px-2 py-1 rounded-full bg-black/40 backdrop-blur-sm">
-                      Smart Door • AI Lab
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span
+                      className={`inline-flex h-2 w-2 rounded-full ${cameraStatus.streaming ? "bg-green-500 animate-pulse" : "bg-gray-400"
+                        }`}
+                    />
+                    <span className="text-gray-500">
+                      Camera • {cameraStatus.streaming ? "Streaming" : "Offline"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span
+                      className={`inline-flex h-2 w-2 rounded-full ${wsConnected ? "bg-blue-500" : "bg-gray-400"
+                        }`}
+                    />
+                    <span className="text-gray-500">
+                      WS • {wsConnected ? "Connected" : "Disconnected"}
                     </span>
                   </div>
                 </div>
               </div>
+
+              <div className="relative overflow-hidden rounded-2xl bg-secondary-gray h-[55vh] md:h-[65vh] lg:h-[65vh]">
+                <CameraStream
+                  streamUrl={streamUrl}
+                  isStreaming={cameraStatus.streaming && !streamError}
+                  onError={() => setStreamError(true)}
+                />
+                {(!cameraStatus.streaming || streamError) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+                    <div className="text-center text-white/60">
+                      <div className="text-4xl mb-2">📷</div>
+                      <p className="text-sm">{streamError ? "Stream error" : "Camera is offline"}</p>
+                      <p className="text-xs mt-1">
+                        {streamError ? "Click Refresh to retry" : "Click Start to begin streaming"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,#fcb90b15,transparent_55%)]" />
+
+                <div className="absolute top-0 left-0 right-0 z-10 flex justify-between items-start p-4">
+                  <span className="px-2 py-1 rounded-full bg-black/40 backdrop-blur-sm text-xs text-primary-white/80">
+                    Smart Door • AI Lab
+                  </span>
+
+                  {lastEvent && (
+                    <div
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-sm text-xs font-semibold animate-pulse ${lastEvent.data?.authorized
+                        ? "bg-emerald-500/80 text-white"
+                        : "bg-red-500/80 text-white"
+                        }`}
+                    >
+                      <NotificationsActiveRoundedIcon sx={{ fontSize: 14 }} />
+                      <span>
+                        {lastEvent.data?.name || "Detection"} -{" "}
+                        {lastEvent.data?.authorized ? "Authorized" : "Unauthorized"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="absolute bottom-0 left-0 right-0 z-10 p-4">
+                  <div className="flex items-center justify-center gap-2">
+                    {!cameraStatus.streaming ? (
+                      <button
+                        type="button"
+                        onClick={handleStartCamera}
+                        disabled={cameraLoading}
+                        className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold transition disabled:opacity-50"
+                      >
+                        <PlayArrowRoundedIcon sx={{ fontSize: 18 }} />
+                        {cameraLoading ? "Starting..." : "Start Camera"}
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleStopCamera}
+                          disabled={cameraLoading}
+                          className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition disabled:opacity-50"
+                        >
+                          <StopRoundedIcon sx={{ fontSize: 18 }} />
+                          {cameraLoading ? "Stopping..." : "Stop"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleRefreshStream}
+                          className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm font-semibold transition"
+                        >
+                          <RefreshRoundedIcon sx={{ fontSize: 18 }} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {detectionEvents.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-xs font-semibold text-gray-600 mb-2">Recent Detections (Live)</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {detectionEvents.slice(0, 5).map((evt, idx) => (
+                      <span
+                        key={idx}
+                        className={`px-2 py-1 rounded-full text-[10px] font-semibold ${evt.data?.authorized
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-red-100 text-red-600"
+                          }`}
+                      >
+                        {evt.data?.name || "Unknown"} • {evt.data?.confidence ? `${(evt.data.confidence * 100).toFixed(0)}%` : "N/A"}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
 
             <section className="grid gap-4 md:grid-cols-2">
@@ -409,9 +584,8 @@ const Dashboard = (props) => {
                       <span className="font-medium">{log.name}</span>
                       <span className="text-gray-700">{log.role}</span>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit ${
-                          log.authorized ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"
-                        }`}
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit ${log.authorized ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"
+                          }`}
                       >
                         {log.authorized ? "Authorized" : "Unauthorized"}
                       </span>
@@ -634,9 +808,9 @@ const Dashboard = (props) => {
               </div>
             </section>
           </div>
-        </div>
-      </main>
-    </div>
+        </div >
+      </main >
+    </div >
   );
 };
 

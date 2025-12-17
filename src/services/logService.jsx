@@ -9,11 +9,11 @@ const authHeaders = () => {
 
 export const getLogs = async () => {
   try {
-    const res = await axios.get(`${baseUrl}/api/logs`, {
+    const res = await axios.get(`${baseUrl}/logs`, {
       headers: { ...authHeaders() },
     });
 
-    return res.data; 
+    return res.data;
   } catch (err) {
     console.error("Failed to get Logs:", err?.response || err?.message);
     throw err;
@@ -22,7 +22,7 @@ export const getLogs = async () => {
 
 export const getFilteredLogs = async (params = {}) => {
   try {
-    const res = await axios.get(`${baseUrl}/api/logs/filter`, {
+    const res = await axios.get(`${baseUrl}/logs/filter`, {
       params,
       headers: { ...authHeaders() },
     });
@@ -36,11 +36,11 @@ export const getFilteredLogs = async (params = {}) => {
 
 export const createLog = async (payload) => {
   try {
-    const res = await axios.post(`${baseUrl}/api/logs`, payload, {
+    const res = await axios.post(`${baseUrl}/logs`, payload, {
       headers: { "Content-Type": "application/json", ...authHeaders() },
     });
 
-    return res.data; 
+    return res.data;
   } catch (err) {
     console.error("Failed to Create Logs:", err?.response || err?.message);
     throw err;
