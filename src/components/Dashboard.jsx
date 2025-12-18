@@ -127,20 +127,30 @@ const Dashboard = (props) => {
 
   const { isConnected: wsConnected, lastEvent } = useWebSocket(handleDetection);
 
-  // Fetch camera status on mount - skip polling when streaming to avoid connection issues
+  // Fetch camera status and config on mount
   useEffect(() => {
     if (cameraStatus.streaming) return; // Don't poll while streaming
 
     const fetchStatus = async () => {
       try {
-        const status = await getCameraStatus();
-        setCameraStatus(status);
+        const res = await getCameraStatus();
+        // Response structure: { success, status: { is_running, ... }, config }
+        const isRunning = res?.status?.is_running;
+        // If camera is already running on backend, set streaming to true and load stream
+        if (isRunning && !cameraStatus.streaming) {
+          setCameraStatus({ ...res, streaming: true });
+          setStreamUrl(`${getStreamUrl()}?t=${Date.now()}`);
+          setStreamError(false);
+        } else {
+          setCameraStatus(res);
+        }
       } catch (err) {
         console.error("Failed to fetch camera status:", err);
       }
     };
+
     fetchStatus();
-    const interval = setInterval(fetchStatus, 30000); // Reduce polling frequency
+    const interval = setInterval(fetchStatus, 30000);
     return () => clearInterval(interval);
   }, [cameraStatus.streaming]);
 
