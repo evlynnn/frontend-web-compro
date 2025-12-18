@@ -1,16 +1,14 @@
-import React, { useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
+import { getFilteredLogs } from "../services/logService";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
 const parseTimestamp = (ts) => {
   if (!ts) return null;
-
-  // kalau dari dashboard sudah ada _date (Date object), pakai itu
   if (ts instanceof Date) return ts;
 
-  // kalau timestamp bentuk string "YYYY-MM-DD HH:mm:ss"
   const s = String(ts).trim();
   const parts = s.split(" ");
   if (parts.length < 2) {
@@ -29,60 +27,13 @@ const parseTimestamp = (ts) => {
 const fmtDateInput = (date) =>
   `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 
-const fmtMonthInput = (date) =>
-  `${date.getFullYear()}-${pad2(date.getMonth() + 1)}`;
-
-const getISOWeek = (date) => {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-  return { year: d.getUTCFullYear(), week };
-};
-
-const parseWeekInput = (weekStr) => {
-  if (!weekStr) return null;
-  const [yPart, wPart] = weekStr.split("-W");
-  const year = Number(yPart);
-  const week = Number(wPart);
-  if (Number.isNaN(year) || Number.isNaN(week)) return null;
-  return { year, week };
-};
-
 const Logging = (props) => {
   const location = useLocation();
-  const navigate = useNavigate();
 
-  // logs dikirim dari Dashboard lewat navigate state
   const incomingLogs = useMemo(() => {
     const arr = location.state?.logs;
     return Array.isArray(arr) ? arr : [];
   }, [location.state]);
-
-  // preset (contoh: "today") dikirim dari dashboard
-  const preset = location.state?.preset;
-
-  // NORMALISASI FIELD supaya kompatibel dengan data backend/dashboard
-  // - Dashboard pakai: name
-  // - Logging lama pakai: username
-  const logs = useMemo(() => {
-    return incomingLogs
-      .map((x) => {
-        const d = x?._date instanceof Date ? x._date : parseTimestamp(x.timestamp);
-        const authorized =
-          typeof x?.authorized === "string" ? x.authorized === "true" : !!x?.authorized;
-
-        return {
-          ...x,
-          username: x.username ?? x.name ?? "-", // pakai username kalau ada, fallback ke name
-          timestamp: x._tsDisplay ?? x.timestamp ?? "-", // pakai tampilan dashboard kalau ada
-          _date: d,
-          authorized,
-        };
-      })
-      .filter((x) => x._date); // buang data timestamp invalid
-  }, [incomingLogs]);
 
   const now = new Date();
 
@@ -91,26 +42,102 @@ const Logging = (props) => {
   const [search, setSearch] = useState("");
 
   const [selectedDate, setSelectedDate] = useState(fmtDateInput(now));
-  const [selectedWeek, setSelectedWeek] = useState(() => {
-    const { year, week } = getISOWeek(now);
-    return `${year}-W${pad2(week)}`;
-  });
-  const [selectedMonth, setSelectedMonth] = useState(fmtMonthInput(now));
-  const [selectedYear, setSelectedYear] = useState(String(now.getFullYear()));
+  const [startDate, setStartDate] = useState(fmtDateInput(now));
+  const [endDate, setEndDate] = useState(fmtDateInput(now));
 
-  const availableYears = useMemo(() => {
-    const years = new Set();
-    logs.forEach((l) => {
-      const d = l._date;
-      if (d) years.add(d.getFullYear());
-    });
-    const arr = Array.from(years).sort((a, b) => b - a);
-    return arr.length ? arr : [now.getFullYear()];
-  }, [logs]);
+  const [apiLogs, setApiLogs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errMsg, setErrMsg] = useState("");
+
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    if (period === "all") {
+      setLoading(false);
+      setErrMsg("");
+      return;
+    }
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    const run = async () => {
+      setLoading(true);
+      setErrMsg("");
+
+      try {
+        const params = {};
+
+        const name = debouncedSearch.trim();
+        if (name) params.name = name;
+
+        if (period === "today") {
+          params.period = "today";
+        } else if (period === "date") {
+          params.period = "date";
+          params.date = selectedDate;
+        } else if (period === "range") {
+          params.period = "range";
+          params.start = startDate;
+          params.end = endDate;
+        }
+
+        const data = await getFilteredLogs(params, signal);
+        if (!data) return;
+
+        const list = Array.isArray(data?.data) ? data.data : [];
+        setApiLogs(list);
+      } catch (e) {
+        if (e.name === "CanceledError") return;
+
+        const msg =
+          e?.response?.data?.error ||
+          e?.response?.data?.message ||
+          e?.message ||
+          "Failed to fetch logs";
+
+        setErrMsg(msg);
+        setApiLogs([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    run();
+
+    return () => {
+      controller.abort();
+    };
+  }, [period, selectedDate, startDate, endDate, debouncedSearch]);
+
+  const sourceLogs = useMemo(() => {
+    return period === "all" ? incomingLogs : apiLogs;
+  }, [period, incomingLogs, apiLogs]);
+
+  const logs = useMemo(() => {
+    return sourceLogs
+      .map((x) => {
+        const d = x?._date instanceof Date ? x._date : parseTimestamp(x.timestamp);
+        const authorized =
+          typeof x?.authorized === "string" ? x.authorized === "true" : !!x?.authorized;
+
+        return {
+          ...x,
+          username: x.username ?? x.name ?? "-",
+          timestamp: x._tsDisplay ?? x.timestamp ?? "-",
+          _date: d,
+          authorized,
+        };
+      })
+      .filter((x) => x._date);
+  }, [sourceLogs]);
 
   const filteredLogs = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const weekObj = parseWeekInput(selectedWeek);
 
     return logs
       .filter((item) => {
@@ -119,31 +146,18 @@ const Logging = (props) => {
         if (statusFilter === "authorized" && item.authorized !== true) return false;
         if (statusFilter === "unauthorized" && item.authorized !== false) return false;
 
-        if (period === "all") return true;
-
-        const dt = item._date;
-        if (!dt) return false;
-
-        if (period === "daily") return fmtDateInput(dt) === selectedDate;
-
-        if (period === "weekly") {
-          if (!weekObj) return true;
-          const w = getISOWeek(dt);
-          return w.year === weekObj.year && w.week === weekObj.week;
-        }
-
-        if (period === "monthly") return fmtMonthInput(dt) === selectedMonth;
-
-        if (period === "yearly") return String(dt.getFullYear()) === selectedYear;
-
         return true;
       })
       .sort((a, b) => b._date - a._date);
-  }, [logs, search, statusFilter, period, selectedDate, selectedWeek, selectedMonth, selectedYear]);
+  }, [logs, search, statusFilter]);
 
   const totalCount = filteredLogs.length;
-  const authorizedCount = useMemo(() => filteredLogs.filter((x) => x.authorized).length, [filteredLogs]);
+  const authorizedCount = useMemo(
+    () => filteredLogs.filter((x) => x.authorized).length,
+    [filteredLogs]
+  );
   const unauthorizedCount = totalCount - authorizedCount;
+  const showNoIncomingBadge = period === "all" && !incomingLogs.length;
 
   return (
     <div className="min-h-screen bg-primary-black text-primary-white">
@@ -157,26 +171,28 @@ const Logging = (props) => {
                 <div className="flex items-center gap-3">
                   <h1 className="text-2xl font-semibold">Door Access Logs</h1>
 
-                  {!incomingLogs.length && (
+                  {showNoIncomingBadge && (
                     <span className="text-[11px] rounded-full px-2 py-1 bg-yellow-100 text-yellow-700 font-semibold">
-                      No data from Dashboard
+                      No data
+                    </span>
+                  )}
+
+                  {period !== "all" && loading && (
+                    <span className="text-[11px] rounded-full px-2 py-1 bg-blue-100 text-blue-700 font-semibold">
+                      Loading...
+                    </span>
+                  )}
+
+                  {period !== "all" && !loading && errMsg && (
+                    <span className="text-[11px] rounded-full px-2 py-1 bg-red-100 text-red-700 font-semibold">
+                      {errMsg}
                     </span>
                   )}
                 </div>
 
                 <p className="text-sm text-black/60">
-                  Monitoring riwayat akses pintu (Authorized / Unauthorized).
+                  Monitor the door access history (Authorized / Unauthorized).
                 </p>
-
-                {!incomingLogs.length && (
-                  <button
-                    type="button"
-                    onClick={() => navigate("/dashboard")}
-                    className="mt-2 text-[11px] text-primary-yellow font-medium hover:underline"
-                  >
-                    Back to Dashboard
-                  </button>
-                )}
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -204,29 +220,24 @@ const Logging = (props) => {
                   onChange={(e) => setPeriod(e.target.value)}
                   className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
                 >
-                  <option value="all">All Data</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="yearly">Yearly</option>
+                  <option value="all">All Logs</option>
+                  <option value="today">Today</option>
+                  <option value="date">By Date</option>
+                  <option value="range">Date Range</option>
                 </select>
               </div>
 
               <div className="lg:col-span-3">
                 <label className="text-xs text-black/60">
-                  {period === "daily"
+                  {period === "date"
                     ? "Select date"
-                    : period === "weekly"
-                    ? "Select week"
-                    : period === "monthly"
-                    ? "Select month"
-                    : period === "yearly"
-                    ? "Select year"
+                    : period === "range"
+                    ? "Select start/end"
                     : "—"}
                 </label>
 
-                <div className="mt-1">
-                  {period === "daily" && (
+                <div className="mt-1 space-y-2">
+                  {period === "date" && (
                     <input
                       type="date"
                       value={selectedDate}
@@ -235,41 +246,28 @@ const Logging = (props) => {
                     />
                   )}
 
-                  {period === "weekly" && (
-                    <input
-                      type="week"
-                      value={selectedWeek}
-                      onChange={(e) => setSelectedWeek(e.target.value)}
-                      className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
-                    />
+                  {period === "range" && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
+                        title="Start date"
+                      />
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
+                        title="End date"
+                      />
+                    </div>
                   )}
 
-                  {period === "monthly" && (
-                    <input
-                      type="month"
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(e.target.value)}
-                      className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
-                    />
-                  )}
-
-                  {period === "yearly" && (
-                    <select
-                      value={selectedYear}
-                      onChange={(e) => setSelectedYear(e.target.value)}
-                      className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
-                    >
-                      {availableYears.map((y) => (
-                        <option key={y} value={String(y)}>
-                          {y}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-
-                  {period === "all" && (
+                  {(period === "all" || period === "today") && (
                     <div className="w-full rounded-xl border border-black/10 bg-black/[0.02] px-3 py-2 text-sm text-black/50">
-                      No date filter
+                      {period === "all" ? "No date filter" : "Today"}
                     </div>
                   )}
                 </div>
@@ -294,7 +292,7 @@ const Logging = (props) => {
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="contoh: iksan"
+                    placeholder="Search here..."
                     className="w-full bg-transparent text-sm outline-none placeholder:text-black/30"
                   />
                   {search.trim() && (
@@ -311,7 +309,7 @@ const Logging = (props) => {
               </div>
             </div>
 
-            {/* Table (scroll only body) */}
+            {/* Table */}
             <div className="rounded-xl border border-black/10 bg-white">
               <div className="max-h-[420px] overflow-y-auto overflow-x-auto rounded-xl">
                 <table className="min-w-full text-sm">
@@ -332,16 +330,20 @@ const Logging = (props) => {
 
                   <tbody className="divide-y divide-black/10">
                     {filteredLogs.map((item, idx) => (
-                      <tr key={item.id ?? `${item.timestamp}-${idx}`} className="hover:bg-black/[0.03]">
+                      <tr
+                        key={item.id ?? `${item.timestamp}-${idx}`}
+                        className="hover:bg-black/[0.03]"
+                      >
                         <td className="px-4 py-3 font-medium">{item.username}</td>
                         <td className="px-4 py-3 text-black/70">{item.role ?? "-"}</td>
                         <td className="px-4 py-3 text-black/70">{item.timestamp}</td>
-
                         <td className="px-4 py-3">
                           <span
                             className={[
                               "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold",
-                              item.authorized ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700",
+                              item.authorized
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700",
                             ].join(" ")}
                           >
                             {item.authorized ? "Authorized" : "Unauthorized"}
@@ -350,10 +352,10 @@ const Logging = (props) => {
                       </tr>
                     ))}
 
-                    {filteredLogs.length === 0 && (
+                    {!loading && filteredLogs.length === 0 && (
                       <tr>
                         <td colSpan={4} className="px-4 py-10 text-center text-black/50">
-                          Tidak ada data yang cocok.
+                          No matching data found.
                         </td>
                       </tr>
                     )}

@@ -244,7 +244,7 @@ const RegisterRequest = (props) => {
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search Here..."
+                    placeholder="Search here..."
                     className="w-full bg-transparent text-sm outline-none placeholder:text-black/30"
                   />
                   {search.trim() && (

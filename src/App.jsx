@@ -46,9 +46,9 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Login onLogin={handleLogin} />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/reset-password" element={<ResetPassword {...sharedProps} />} />
 
       <Route element={<RequireAuth user={user} />}>
-        <Route path="/reset-password" element={<ResetPassword {...sharedProps} />} />
         <Route path="/dashboard" element={<Dashboard {...sharedProps} />} />
         <Route path="/register-request" element={<RegisterRequest {...sharedProps} />} />
         <Route path="/reset-password-request" element={<ResetPasswordRequest {...sharedProps} />} />

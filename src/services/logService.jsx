@@ -20,16 +20,19 @@ export const getLogs = async () => {
   }
 };
 
-export const getFilteredLogs = async (params = {}) => {
+export const getFilteredLogs = async (params = {}, signal) => {
   try {
     const res = await axios.get(`${baseUrl}/logs/filter`, {
       params,
+      signal, 
       headers: { ...authHeaders() },
     });
 
     return res.data;
   } catch (err) {
-    console.error("Failed to get Filter Logs:", err?.response || err?.message);
+    if (err.name === "CanceledError") {
+      return null;
+    }
     throw err;
   }
 };
