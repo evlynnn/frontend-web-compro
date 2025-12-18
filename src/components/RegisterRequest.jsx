@@ -261,103 +261,103 @@ const RegisterRequest = (props) => {
               </div>
             </div>
 
-            {loading ? (
-              <div className="rounded-xl border border-black/10 bg-white p-6 text-sm text-black/60">
+            {loading && (
+              <div className="rounded-xl border border-black/10 bg-black/[0.02] px-4 py-3 text-sm text-black/60">
                 Loading data from the database...
               </div>
-            ) : (
-              <div className="rounded-xl border border-black/10 bg-white">
-                <div className="max-h-[420px] overflow-y-auto overflow-x-auto rounded-xl">
-                  <table className="min-w-full text-sm">
-                    <thead
-                      className="
-                        sticky top-0 z-20 bg-white
-                        border-b border-black/10
-                        shadow-[0_1px_0_0_rgba(0,0,0,0.08)]
-                      "
-                    >
-                      <tr>
-                        <th className="px-4 py-3 text-left font-bold text-black/70">Username</th>
-                        <th className="px-4 py-3 text-left font-bold text-black/70">Requested At</th>
-                        <th className="px-4 py-3 text-left font-bold text-black/70">Status</th>
-                        <th className="px-4 py-3 text-center font-bold text-black/70">Action</th>
-                      </tr>
-                    </thead>
+            )}
 
-                    <tbody className="divide-y divide-black/10">
-                      {filteredRequests.map((item) => {
-                        const isActing = actionLoadingId === item.id;
+            <div className="rounded-xl border border-black/10 bg-white">
+              <div className="max-h-[420px] overflow-y-auto overflow-x-auto rounded-xl">
+                <table className="min-w-full text-sm table-fixed">
+                  <thead
+                    className="
+                      sticky top-0 z-20 bg-white
+                      border-b border-black/10
+                      shadow-[0_1px_0_0_rgba(0,0,0,0.08)]
+                    "
+                  >
+                    <tr>
+                      <th className="w-[25%] px-4 py-3 text-left font-bold text-black/70">Username</th>
+                      <th className="w-[25%] px-4 py-3 text-left font-bold text-black/70">Requested At</th>
+                      <th className="w-[25%] px-4 py-3 text-left font-bold text-black/70">Status</th>
+                      <th className="w-[25%] px-4 py-3 text-center font-bold text-black/70">Action</th>
+                    </tr>
+                  </thead>
 
-                        return (
-                          <tr key={item.id} className="hover:bg-black/[0.03]">
-                            <td className="px-4 py-3 font-medium">{item.username}</td>
-                            <td className="px-4 py-3 text-black/70">{formatRequestedAt(item.requestedAt)}</td>
+                  <tbody className="divide-y divide-black/10">
+                    {filteredRequests.map((item) => {
+                      const isActing = actionLoadingId === item.id;
 
-                            <td className="px-4 py-3">
-                              <span
-                                className={[
-                                  "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold",
-                                  item.status === "Accepted"
-                                    ? "bg-green-100 text-green-700"
-                                    : item.status === "Rejected"
-                                    ? "bg-red-100 text-red-700"
-                                    : "bg-yellow-100 text-yellow-800",
-                                ].join(" ")}
-                              >
-                                {item.status}
-                                {item.needsReset ? (
-                                  <span className="ml-2 font-normal text-black/60">• Password Reset Request</span>
-                                ) : null}
-                              </span>
-                            </td>
+                      return (
+                        <tr key={item.id} className="hover:bg-black/[0.03]">
+                          <td className="px-4 py-3 font-medium truncate">{item.username}</td>
+                          <td className="px-4 py-3 text-black/70 truncate">{formatRequestedAt(item.requestedAt)}</td>
 
-                            <td className="px-4 py-3">
-                              {item.status === "Pending" ? (
-                                <div className="flex items-center justify-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => openAssignAppRoleModal(item)}
-                                    disabled={isActing}
-                                    className={[
-                                      "rounded-lg bg-[var(--color-chart-authorized)] px-3 py-1.5 text-xs font-semibold text-white hover:brightness-95",
-                                      isActing ? "opacity-60 cursor-not-allowed" : "",
-                                    ].join(" ")}
-                                  >
-                                    {isActing ? "Processing..." : "Accept"}
-                                  </button>
+                          <td className="px-4 py-3 truncate">
+                            <span
+                              className={[
+                                "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold",
+                                item.status === "Accepted"
+                                  ? "bg-green-100 text-green-700"
+                                  : item.status === "Rejected"
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-yellow-100 text-yellow-800",
+                              ].join(" ")}
+                            >
+                              {item.status}
+                              {item.needsReset ? (
+                                <span className="ml-2 font-normal text-black/60">• Password Reset Request</span>
+                              ) : null}
+                            </span>
+                          </td>
 
-                                  <button
-                                    type="button"
-                                    onClick={() => openRejectConfirm(item)}
-                                    disabled={isActing}
-                                    className={[
-                                      "rounded-lg bg-[var(--color-chart-unauthorized)] px-3 py-1.5 text-xs font-semibold text-white hover:brightness-95",
-                                      isActing ? "opacity-60 cursor-not-allowed" : "",
-                                    ].join(" ")}
-                                  >
-                                    {isActing ? "Processing..." : "Reject"}
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="text-center text-xs text-black/40">No action</div>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
+                          <td className="px-4 py-3">
+                            {item.status === "Pending" ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => openAssignAppRoleModal(item)}
+                                  disabled={isActing}
+                                  className={[
+                                    "rounded-lg bg-[var(--color-chart-authorized)] px-3 py-1.5 text-xs font-semibold text-white hover:brightness-95",
+                                    isActing ? "opacity-60 cursor-not-allowed" : "",
+                                  ].join(" ")}
+                                >
+                                  {isActing ? "Processing..." : "Accept"}
+                                </button>
 
-                      {filteredRequests.length === 0 && (
-                        <tr>
-                          <td colSpan={4} className="px-4 py-10 text-center text-black/50">
-                            No matching data found.
+                                <button
+                                  type="button"
+                                  onClick={() => openRejectConfirm(item)}
+                                  disabled={isActing}
+                                  className={[
+                                    "rounded-lg bg-[var(--color-chart-unauthorized)] px-3 py-1.5 text-xs font-semibold text-white hover:brightness-95",
+                                    isActing ? "opacity-60 cursor-not-allowed" : "",
+                                  ].join(" ")}
+                                >
+                                  {isActing ? "Processing..." : "Reject"}
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="text-center text-xs text-black/40">No action</div>
+                            )}
                           </td>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                      );
+                    })}
+
+                    {!loading && filteredRequests.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-10 text-center text-black/50">
+                          No register requests found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-            )}
+            </div>
           </section>
         </div>
 
@@ -534,7 +534,6 @@ const RegisterRequest = (props) => {
         title={popupTitle}
         message={popupMessage}
         onClose={closePopup}
-        okText="OK"
       />
     </div>
   );
