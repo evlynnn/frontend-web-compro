@@ -1,29 +1,27 @@
 import React, { useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
-
-const initialLogs = [
-  { id: 101, username: "akbar", role: "Aslab", authorized: true, confidence: 0.95, timestamp: "2025-12-13 08:12:10" },
-  { id: 102, username: "iksan", role: "Dosen", authorized: true, confidence: 0.9, timestamp: "2025-12-13 10:05:44" },
-  { id: 103, username: "unknown", role: "Tamu", authorized: false, confidence: 0.13, timestamp: "2025-12-13 12:21:09" },
-  { id: 104, username: "aprilianza", role: "Tamu", authorized: false, confidence: 0.22, timestamp: "2025-12-12 16:40:12" },
-  { id: 105, username: "evlynnn", role: "Aslab", authorized: true, confidence: 0.88, timestamp: "2025-12-11 09:05:31" },
-  { id: 106, username: "akbar", role: "Aslab", authorized: true, confidence: 0.91, timestamp: "2025-12-10 14:21:05" },
-  { id: 107, username: "iksan", role: "Dosen", authorized: false, confidence: 0.31, timestamp: "2025-12-05 18:02:11" },
-  { id: 108, username: "aprilianza", role: "Tamu", authorized: true, confidence: 0.86, timestamp: "2025-12-03 07:44:19" },
-  { id: 109, username: "akbar", role: "Aslab", authorized: true, confidence: 0.93, timestamp: "2025-11-26 20:11:03" },
-  { id: 110, username: "unknown", role: "Tamu", authorized: false, confidence: 0.1, timestamp: "2025-11-14 02:18:40" },
-  { id: 111, username: "evlynnn", role: "Aslab", authorized: true, confidence: 0.89, timestamp: "2025-08-12 11:02:58" },
-  { id: 112, username: "iksan", role: "Dosen", authorized: true, confidence: 0.92, timestamp: "2025-03-21 13:27:10" },
-];
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
 const parseTimestamp = (ts) => {
   if (!ts) return null;
-  const [datePart, timePart] = ts.split(" ");
-  if (!datePart || !timePart) return null;
+
+  // kalau dari dashboard sudah ada _date (Date object), pakai itu
+  if (ts instanceof Date) return ts;
+
+  // kalau timestamp bentuk string "YYYY-MM-DD HH:mm:ss"
+  const s = String(ts).trim();
+  const parts = s.split(" ");
+  if (parts.length < 2) {
+    const d = new Date(s);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  const [datePart, timePart] = parts;
   const [y, m, d] = datePart.split("-").map(Number);
   const [hh, mm, ss] = timePart.split(":").map(Number);
+
   if ([y, m, d, hh, mm].some((v) => Number.isNaN(v))) return null;
   return new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, ss || 0);
 };
@@ -53,13 +51,45 @@ const parseWeekInput = (weekStr) => {
 };
 
 const Logging = (props) => {
-  const [logs] = useState(initialLogs);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // logs dikirim dari Dashboard lewat navigate state
+  const incomingLogs = useMemo(() => {
+    const arr = location.state?.logs;
+    return Array.isArray(arr) ? arr : [];
+  }, [location.state]);
+
+  // preset (contoh: "today") dikirim dari dashboard
+  const preset = location.state?.preset;
+
+  // NORMALISASI FIELD supaya kompatibel dengan data backend/dashboard
+  // - Dashboard pakai: name
+  // - Logging lama pakai: username
+  const logs = useMemo(() => {
+    return incomingLogs
+      .map((x) => {
+        const d = x?._date instanceof Date ? x._date : parseTimestamp(x.timestamp);
+        const authorized =
+          typeof x?.authorized === "string" ? x.authorized === "true" : !!x?.authorized;
+
+        return {
+          ...x,
+          username: x.username ?? x.name ?? "-", // pakai username kalau ada, fallback ke name
+          timestamp: x._tsDisplay ?? x.timestamp ?? "-", // pakai tampilan dashboard kalau ada
+          _date: d,
+          authorized,
+        };
+      })
+      .filter((x) => x._date); // buang data timestamp invalid
+  }, [incomingLogs]);
+
+  const now = new Date();
 
   const [period, setPeriod] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
 
-  const now = new Date();
   const [selectedDate, setSelectedDate] = useState(fmtDateInput(now));
   const [selectedWeek, setSelectedWeek] = useState(() => {
     const { year, week } = getISOWeek(now);
@@ -71,7 +101,7 @@ const Logging = (props) => {
   const availableYears = useMemo(() => {
     const years = new Set();
     logs.forEach((l) => {
-      const d = parseTimestamp(l.timestamp);
+      const d = l._date;
       if (d) years.add(d.getFullYear());
     });
     const arr = Array.from(years).sort((a, b) => b - a);
@@ -82,31 +112,33 @@ const Logging = (props) => {
     const q = search.trim().toLowerCase();
     const weekObj = parseWeekInput(selectedWeek);
 
-    return logs.filter((item) => {
-      if (q && !item.username.toLowerCase().includes(q)) return false;
+    return logs
+      .filter((item) => {
+        if (q && !String(item.username).toLowerCase().includes(q)) return false;
 
-      if (statusFilter === "authorized" && item.authorized !== true) return false;
-      if (statusFilter === "unauthorized" && item.authorized !== false) return false;
+        if (statusFilter === "authorized" && item.authorized !== true) return false;
+        if (statusFilter === "unauthorized" && item.authorized !== false) return false;
 
-      if (period === "all") return true;
+        if (period === "all") return true;
 
-      const dt = parseTimestamp(item.timestamp);
-      if (!dt) return false;
+        const dt = item._date;
+        if (!dt) return false;
 
-      if (period === "daily") return fmtDateInput(dt) === selectedDate;
+        if (period === "daily") return fmtDateInput(dt) === selectedDate;
 
-      if (period === "weekly") {
-        if (!weekObj) return true;
-        const w = getISOWeek(dt);
-        return w.year === weekObj.year && w.week === weekObj.week;
-      }
+        if (period === "weekly") {
+          if (!weekObj) return true;
+          const w = getISOWeek(dt);
+          return w.year === weekObj.year && w.week === weekObj.week;
+        }
 
-      if (period === "monthly") return fmtMonthInput(dt) === selectedMonth;
+        if (period === "monthly") return fmtMonthInput(dt) === selectedMonth;
 
-      if (period === "yearly") return String(dt.getFullYear()) === selectedYear;
+        if (period === "yearly") return String(dt.getFullYear()) === selectedYear;
 
-      return true;
-    });
+        return true;
+      })
+      .sort((a, b) => b._date - a._date);
   }, [logs, search, statusFilter, period, selectedDate, selectedWeek, selectedMonth, selectedYear]);
 
   const totalCount = filteredLogs.length;
@@ -122,10 +154,29 @@ const Logging = (props) => {
           <section className="rounded-3xl bg-white text-black shadow-sm border border-black/10 p-5 md:p-6 space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h1 className="text-2xl font-semibold">Door Access Logs</h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-semibold">Door Access Logs</h1>
+
+                  {!incomingLogs.length && (
+                    <span className="text-[11px] rounded-full px-2 py-1 bg-yellow-100 text-yellow-700 font-semibold">
+                      No data from Dashboard
+                    </span>
+                  )}
+                </div>
+
                 <p className="text-sm text-black/60">
                   Monitoring riwayat akses pintu (Authorized / Unauthorized).
                 </p>
+
+                {!incomingLogs.length && (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/dashboard")}
+                    className="mt-2 text-[11px] text-primary-yellow font-medium hover:underline"
+                  >
+                    Back to Dashboard
+                  </button>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -280,10 +331,10 @@ const Logging = (props) => {
                   </thead>
 
                   <tbody className="divide-y divide-black/10">
-                    {filteredLogs.map((item) => (
-                      <tr key={item.id} className="hover:bg-black/[0.03]">
+                    {filteredLogs.map((item, idx) => (
+                      <tr key={item.id ?? `${item.timestamp}-${idx}`} className="hover:bg-black/[0.03]">
                         <td className="px-4 py-3 font-medium">{item.username}</td>
-                        <td className="px-4 py-3 text-black/70">{item.role}</td>
+                        <td className="px-4 py-3 text-black/70">{item.role ?? "-"}</td>
                         <td className="px-4 py-3 text-black/70">{item.timestamp}</td>
 
                         <td className="px-4 py-3">

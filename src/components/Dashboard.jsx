@@ -24,38 +24,10 @@ import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
-
-const logsFromBackend = [
-  { authorized: true, confidence: 0.95, id: 1, name: "Iksan", role: "Aslab", timestamp: "2025-12-13 09:24:31" },
-  { authorized: true, confidence: 0.9, id: 2, name: "Akbar", role: "Aslab", timestamp: "2025-12-13 11:18:12" },
-  { authorized: false, confidence: 0.11, id: 210, name: "Unknown", role: "Guest", timestamp: "2025-12-13 11:07:18" },
-  { authorized: true, confidence: 0.87, id: 3, name: "Bian", role: "Dosen", timestamp: "2025-12-13 13:02:44" },
-  { authorized: true, confidence: 0.84, id: 4, name: "Dinda", role: "Aslab", timestamp: "2025-12-11 14:31:55" },
-  { authorized: true, confidence: 0.81, id: 5, name: "Raka", role: "Guest", timestamp: "2025-12-10 10:12:01" },
-  { authorized: false, confidence: 0.18, id: 6, name: "Unknown", role: "Guest", timestamp: "2025-12-09 18:45:09" },
-  { authorized: true, confidence: 0.89, id: 7, name: "Aprilianza", role: "Aslab", timestamp: "2025-12-06 09:10:44" },
-  { authorized: true, confidence: 0.86, id: 8, name: "Tama", role: "Dosen", timestamp: "2025-12-05 08:58:03" },
-  { authorized: true, confidence: 0.78, id: 9, name: "Nanda", role: "Guest", timestamp: "2025-11-29 16:20:11" },
-  { authorized: false, confidence: 0.23, id: 10, name: "Unknown", role: "Guest", timestamp: "2025-11-28 09:11:44" },
-  { authorized: true, confidence: 0.92, id: 11, name: "Iksan", role: "Aslab", timestamp: "2025-11-24 08:40:00" },
-  { authorized: true, confidence: 0.83, id: 12, name: "Bima", role: "Guest", timestamp: "2025-11-18 12:05:33" },
-  { authorized: true, confidence: 0.88, id: 13, name: "Bian", role: "Dosen", timestamp: "2025-11-14 10:14:22" },
-  { authorized: false, confidence: 0.16, id: 14, name: "Unknown", role: "Guest", timestamp: "2025-11-12 19:02:10" },
-];
+import { getLogs } from "../services/logService";
 
 const TZ_ID = "Asia/Jakarta";
 const pad2 = (n) => String(n).padStart(2, "0");
-
-const parseTimestampWIB = (s) => {
-  if (!s) return null;
-  const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/);
-  if (!m) return null;
-
-  const [, Y, M, D, h, mi, se] = m.map(Number);
-  const utcMs = Date.UTC(Y, M - 1, D, h - 7, mi, se);
-  const d = new Date(utcMs);
-  return isNaN(d.getTime()) ? null : d;
-};
 
 const makeDTF = (timeZone, opts) => new Intl.DateTimeFormat("en-GB", { timeZone, ...opts });
 
@@ -64,6 +36,50 @@ const DTF_HH = makeDTF(TZ_ID, { hour: "2-digit", hour12: false });
 const DTF_WD = makeDTF(TZ_ID, { weekday: "short" });
 const DTF_MON = makeDTF(TZ_ID, { month: "short" });
 const DTF_YM = makeDTF(TZ_ID, { year: "numeric", month: "2-digit" });
+
+const parseTimestampWIB = (s) => {
+  if (!s) return null;
+  const str = String(s).trim();
+
+  const native = new Date(str);
+  if (!Number.isNaN(native.getTime())) return native;
+
+  const m = str.match(
+    /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/
+  );
+  if (!m) return null;
+
+  const Y = Number(m[1]);
+  const M = Number(m[2]);
+  const D = Number(m[3]);
+  const h = Number(m[4]);
+  const mi = Number(m[5]);
+  const se = Number(m[6]);
+
+  const utcMs = Date.UTC(Y, M - 1, D, h - 7, mi, se);
+  const d = new Date(utcMs);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+const DTF_FULL = makeDTF(TZ_ID, {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+});
+
+const formatTimestampWIB = (raw) => {
+  const d = raw instanceof Date ? raw : parseTimestampWIB(raw);
+  if (!d) return raw ? String(raw) : "-";
+
+  const out = DTF_FULL.format(d).replace(",", "");
+  const [dd, mm, yy] = out.split(" ")[0].split("/");
+  const time = out.split(" ")[1] || "00:00:00";
+  return `${yy}-${mm}-${dd} ${time}`;
+};
 
 const ymdInWIB = (d) => {
   const [dd, mm, yy] = DTF_YMD.format(d).split("/");
@@ -97,7 +113,9 @@ const Dashboard = (props) => {
   const initialTarget = location.state?.scrollTo;
   const bootRef = useRef(false);
 
-  const [recapMode, setRecapMode] = useState("week");
+  const [logsFromBackend, setLogsFromBackend] = useState([]);
+
+  const [recapMode, setRecapMode] = useState("all");
   const [nowTick, setNowTick] = useState(Date.now());
   const hourScrollRef = useRef(null);
 
@@ -127,16 +145,37 @@ const Dashboard = (props) => {
 
   const { isConnected: wsConnected, lastEvent } = useWebSocket(handleDetection);
 
-  // Fetch camera status and config on mount
   useEffect(() => {
-    if (cameraStatus.streaming) return; // Don't poll while streaming
+    let alive = true;
+
+    const fetchLogs = async () => {
+      try {
+        const res = await getLogs();
+        console.log(res)
+        const data = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        if (!alive) return;
+        setLogsFromBackend(data);
+      } catch (err) {
+        console.error("Failed to fetch logs:", err?.response || err?.message || err);
+      }
+    };
+
+    fetchLogs();
+    const interval = setInterval(fetchLogs, 30000);
+
+    return () => {
+      alive = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (cameraStatus.streaming) return; 
 
     const fetchStatus = async () => {
       try {
         const res = await getCameraStatus();
-        // Response structure: { success, status: { is_running, ... }, config }
         const isRunning = res?.status?.is_running;
-        // If camera is already running on backend, set streaming to true and load stream
         if (isRunning && !cameraStatus.streaming) {
           setCameraStatus({ ...res, streaming: true });
           setStreamUrl(`${getStreamUrl()}?t=${Date.now()}`);
@@ -287,7 +326,7 @@ const Dashboard = (props) => {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   useEffect(() => {
@@ -296,14 +335,18 @@ const Dashboard = (props) => {
   }, []);
 
   const logs = useMemo(() => {
-    return (logsFromBackend || [])
-      .map((x) => ({
+  return (logsFromBackend || [])
+    .map((x) => {
+      const d = parseTimestampWIB(x.timestamp);
+      return {
         ...x,
-        _date: parseTimestampWIB(x.timestamp),
+        _date: d,
+        _tsDisplay: formatTimestampWIB(d || x.timestamp),
         authorized: typeof x.authorized === "string" ? x.authorized === "true" : !!x.authorized,
-      }))
-      .filter((x) => x._date);
-  }, []);
+      };
+    })
+    .filter((x) => x._date);
+}, [logsFromBackend]);
 
   const todayKey = useMemo(() => getTodayKeyWIB(), [nowTick]);
 
@@ -566,7 +609,7 @@ const Dashboard = (props) => {
                   <h3 className="text-sm font-semibold">Recent Door Access</h3>
                   <button
                     type="button"
-                    onClick={() => navigate("/logging", { state: { preset: "today" } })}
+                    onClick={() => navigate("/logging", { state: { preset: "today", logs } })}
                     className="text-[11px] text-primary-yellow font-medium hover:underline"
                   >
                     View all
@@ -586,11 +629,11 @@ const Dashboard = (props) => {
                 <div className="mt-2 space-y-2 text-xs">
                   {recentLogs.map((log, idx) => (
                     <div
-                      key={log.id ?? `${log.timestamp}-${idx}`}
+                      key={log.id ?? `${log._tsDisplay}-${idx}`}
                       className="grid items-center py-1 border-b border-gray-200 last:border-0"
                       style={{ gridTemplateColumns: "1.6fr 1.4fr 1.2fr 1fr" }}
                     >
-                      <span className="font-mono text-[11px]">{log.timestamp}</span>
+                      <span className="font-mono text-[11px]">{log._tsDisplay}</span>
                       <span className="font-medium">{log.name}</span>
                       <span className="text-gray-700">{log.role}</span>
                       <span
@@ -716,8 +759,12 @@ const Dashboard = (props) => {
                   onChange={(e) => setRecapMode(e.target.value)}
                   className="text-[11px] border border-gray-200 rounded-full px-3 py-1 bg-white"
                 >
-                  <option value="week">Last 7 days</option>
-                  <option value="month">Last 5 months</option>
+                  <option value="all">All logs</option>
+                  <option value="7d">Last 7 days</option>
+                  <option value="1m">Last 1 month</option>
+                  <option value="3m">Last 3 months</option>
+                  <option value="6m">Last 6 months</option>
+                  <option value="1y">Last 1 year</option>
                 </select>
               </div>
 
@@ -742,7 +789,12 @@ const Dashboard = (props) => {
                     </defs>
 
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey={recapMode === "week" ? "dayLabel" : "monthLabel"} tick={{ fontSize: 11 }} />
+
+                    {/* Harian untuk 7 hari & 1 bulan, Bulanan untuk 3m/6m/1y/all */}
+                    <XAxis
+                      dataKey={["7d", "1m"].includes(recapMode) ? "dayLabel" : "monthLabel"}
+                      tick={{ fontSize: 11 }}
+                    />
                     <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                     <Tooltip />
 
@@ -783,17 +835,11 @@ const Dashboard = (props) => {
                   Total
                 </span>
                 <span className="inline-flex items-center gap-2">
-                  <span
-                    className="inline-block h-2 w-2 rounded-full"
-                    style={{ background: "var(--color-chart-authorized)" }}
-                  />
+                  <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--color-chart-authorized)" }} />
                   Authorized
                 </span>
                 <span className="inline-flex items-center gap-2">
-                  <span
-                    className="inline-block h-2 w-2 rounded-full"
-                    style={{ background: "var(--color-chart-unauthorized)" }}
-                  />
+                  <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--color-chart-unauthorized)" }} />
                   Unauthorized
                 </span>
               </div>
@@ -801,7 +847,9 @@ const Dashboard = (props) => {
               <div className="mt-4 grid grid-cols-3 gap-2 text-[11px]">
                 <div className="rounded-2xl bg-secondary-gray px-3 py-2">
                   <p className="text-gray-500">Total</p>
-                  <p className="text-sm font-semibold text-primary-black">{recapData.reduce((s, x) => s + (x.total || 0), 0)}</p>
+                  <p className="text-sm font-semibold text-primary-black">
+                    {recapData.reduce((s, x) => s + (x.total || 0), 0)}
+                  </p>
                 </div>
                 <div className="rounded-2xl bg-secondary-gray px-3 py-2">
                   <p className="text-gray-500">Authorized</p>

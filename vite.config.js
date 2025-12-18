@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: '192.168.18.8', // Makes the server externally accessible
+    host: '172.16.178.159', // Makes the server externally accessible
     // or set a specific hostname
     // host: 'home.example.com'
   }
