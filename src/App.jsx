@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 
 import Login from "./components/Login";
 import Register from "./components/Register";
@@ -8,6 +8,11 @@ import Dashboard from "./components/Dashboard";
 import RegisterRequest from "./components/RegisterRequest";
 import ResetPasswordRequest from "./components/ResetPasswordRequest";
 import Logging from "./components/Logging";
+
+const RequireAuth = ({ user }) => {
+  const token = localStorage.getItem("token");
+  return user && token ? <Outlet /> : <Navigate to="/" replace />;
+};
 
 export default function App() {
   const [theme, setTheme] = useState("dark");
@@ -41,12 +46,14 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Login onLogin={handleLogin} />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/reset-password" element={<ResetPassword {...sharedProps} />} />
 
-      <Route path="/dashboard" element={<Dashboard {...sharedProps} />} />
-      <Route path="/register-request" element={<RegisterRequest {...sharedProps} />} />
-      <Route path="/reset-password-request" element={<ResetPasswordRequest {...sharedProps} />} />
-      <Route path="/logging" element={<Logging {...sharedProps} />} />
+      <Route element={<RequireAuth user={user} />}>
+        <Route path="/reset-password" element={<ResetPassword {...sharedProps} />} />
+        <Route path="/dashboard" element={<Dashboard {...sharedProps} />} />
+        <Route path="/register-request" element={<RegisterRequest {...sharedProps} />} />
+        <Route path="/reset-password-request" element={<ResetPasswordRequest {...sharedProps} />} />
+        <Route path="/logging" element={<Logging {...sharedProps} />} />
+      </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
