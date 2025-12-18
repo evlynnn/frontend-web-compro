@@ -43,8 +43,27 @@ export const resetRequest = async (userData) => {
 
     return response.data; 
   } catch (err) {
-
     console.error("Failed to reset password:", err?.response || err?.message);
     throw err; 
   }
+};
+
+export const logout = async () => {
+  try {
+    await axios.post(`${baseUrl}/users/logout`,{},{
+      headers: {
+        ...authHeaders(),
+      },
+    });
+
+  } catch (err) {
+    console.warn("Backend logout failed:", err?.response || err?.message);
+  } finally {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("user");
+  }
+
+  return true;
 };

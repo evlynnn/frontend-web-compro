@@ -4,6 +4,7 @@ import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
 import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
 import Logo from "../assets/Logo.png";
 import LogoutModal from "./LogoutModal";
+import { logout as logoutService } from "../services/authService";
 
 const ThemeToggleSwitch = ({ theme = "dark", setTheme }) => {
   const isDark = theme === "dark";
@@ -122,10 +123,15 @@ const Sidebar = (props) => {
 
   const handleLogoutClick = () => setLogoutOpen(true);
 
-  const handleConfirmLogout = () => {
+  const handleConfirmLogout = async () => {
     setLogoutOpen(false);
-    logout();
-    navigate(LOGIN_PATH, { replace: true });
+
+    await logoutService(); 
+    try {
+      logout();
+    } catch (_) {}
+
+    navigate("/", { replace: true });
   };
 
   return (
