@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { useTheme } from "./context/ThemeContext";
 
 import Login from "./components/Login";
 import Register from "./components/Register";
@@ -15,7 +16,7 @@ const RequireAuth = ({ user }) => {
 };
 
 export default function App() {
-  const [theme, setTheme] = useState("dark");
+  const { theme, setTheme } = useTheme();
 
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem("user");

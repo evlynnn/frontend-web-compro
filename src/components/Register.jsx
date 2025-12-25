@@ -133,7 +133,7 @@ const Register = () => {
   }, [username]);
 
   return (
-    <div className="min-h-screen bg-secondary-gray flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen bg-secondary-gray dark:bg-primary-black flex items-center justify-center relative overflow-hidden transition-colors duration-300">
       <PopupModal
         open={modalOpen}
         type={modalType}
@@ -142,25 +142,25 @@ const Register = () => {
         onClose={() => setModalOpen(false)}
       />
 
-      <div className="relative z-10 w-full max-w-md px-6 sm:px-10 py-10 sm:py-12 bg-primary-white rounded-3xl shadow-xl text-center">
+      <div className="relative z-10 w-full max-w-md px-6 sm:px-10 py-10 sm:py-12 bg-primary-white dark:bg-zinc-900 rounded-3xl shadow-xl text-center transition-colors duration-300">
         <div className="mb-5 flex flex-col items-center">
           <div className="rounded-full p-3 bg-white/60 shadow-sm ring-2 ring-gray-300">
             <img src={Logo} alt="App Logo" className="w-18 h-18 object-contain" />
           </div>
         </div>
 
-        <h1 className="text-xl sm:text-2xl font-bold text-primary-black mb-2">
+        <h1 className="text-xl sm:text-2xl font-bold text-primary-black dark:text-white mb-2">
           Create your account
         </h1>
 
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Register to access the monitoring and analytics dashboard.
         </p>
 
         <form className="space-y-5 text-left" onSubmit={handleSubmit}>
           {/* Username */}
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-primary-black">Username</label>
+            <label className="block text-sm font-medium text-primary-black dark:text-white">Username</label>
             <input
               type="text"
               placeholder="Enter your username"
@@ -171,16 +171,15 @@ const Register = () => {
                 setUsername(val);
                 if (errorUsername) setErrorUsername("");
               }}
-              className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 
-                ${
-                  errorUsername
-                    ? "border-red-500 focus:ring-red-400"
-                    : "border-gray-300 focus:ring-primary-yellow"
+              className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 bg-white dark:bg-zinc-800 dark:text-white
+                ${errorUsername
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 dark:border-zinc-700 focus:ring-primary-yellow"
                 } ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""}`}
             />
 
             {usernameHint && !errorUsername && (
-              <p className="text-gray-500 text-xs mt-1">{usernameHint}</p>
+              <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">{usernameHint}</p>
             )}
 
             {errorUsername && <p className="text-red-500 text-xs mt-1">{errorUsername}</p>}
@@ -188,7 +187,7 @@ const Register = () => {
 
           {/* Password */}
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-primary-black">Password</label>
+            <label className="block text-sm font-medium text-primary-black dark:text-white">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -199,11 +198,10 @@ const Register = () => {
                   setPassword(e.target.value);
                   if (errorPassword) setErrorPassword("");
                 }}
-                className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 
-                  ${
-                    errorPassword
-                      ? "border-red-500 focus:ring-red-400"
-                      : "border-gray-300 focus:ring-primary-yellow"
+                className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 bg-white dark:bg-zinc-800 dark:text-white
+                  ${errorPassword
+                    ? "border-red-500 focus:ring-red-400"
+                    : "border-gray-300 dark:border-zinc-700 focus:ring-primary-yellow"
                   } ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""}`}
               />
 
@@ -211,16 +209,15 @@ const Register = () => {
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => setShowPassword((prev) => !prev)}
-                className={`absolute inset-y-0 right-3 flex items-center text-gray-600 hover:text-primary-black ${
-                  isSubmitting ? "opacity-60 cursor-not-allowed" : ""
-                }`}
+                className={`absolute inset-y-0 right-3 flex items-center text-gray-600 dark:text-gray-400 hover:text-primary-black dark:hover:text-white ${isSubmitting ? "opacity-60 cursor-not-allowed" : ""
+                  }`}
               >
                 {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
               </button>
             </div>
 
             {!errorPassword && password && password.length < 8 && (
-              <p className="text-gray-500 text-xs mt-1">Min. 8 characters</p>
+              <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Min. 8 characters</p>
             )}
 
             {errorPassword && <p className="text-red-500 text-xs mt-1">{errorPassword}</p>}
@@ -228,7 +225,7 @@ const Register = () => {
 
           {/* Confirm Password */}
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-primary-black">Confirm Password</label>
+            <label className="block text-sm font-medium text-primary-black dark:text-white">Confirm Password</label>
             <div className="relative">
               <input
                 type={showConfirmPass ? "text" : "password"}
@@ -239,11 +236,10 @@ const Register = () => {
                   setConfirmPass(e.target.value);
                   if (errorConfirm) setErrorConfirm("");
                 }}
-                className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 
-                  ${
-                    errorConfirm
-                      ? "border-red-500 focus:ring-red-400"
-                      : "border-gray-300 focus:ring-primary-yellow"
+                className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 bg-white dark:bg-zinc-800 dark:text-white
+                  ${errorConfirm
+                    ? "border-red-500 focus:ring-red-400"
+                    : "border-gray-300 dark:border-zinc-700 focus:ring-primary-yellow"
                   } ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""}`}
               />
 
@@ -251,9 +247,8 @@ const Register = () => {
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => setShowConfirmPass((prev) => !prev)}
-                className={`absolute inset-y-0 right-3 flex items-center text-gray-600 hover:text-primary-black ${
-                  isSubmitting ? "opacity-60 cursor-not-allowed" : ""
-                }`}
+                className={`absolute inset-y-0 right-3 flex items-center text-gray-600 dark:text-gray-400 hover:text-primary-black dark:hover:text-white ${isSubmitting ? "opacity-60 cursor-not-allowed" : ""
+                  }`}
               >
                 {showConfirmPass ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
               </button>
@@ -266,17 +261,16 @@ const Register = () => {
             type="submit"
             disabled={isSubmitting}
             className={`mt-4 w-full rounded-lg py-2.5 text-sm font-semibold transition-colors
-              ${
-                isSubmitting
-                  ? "bg-black/60 text-white cursor-not-allowed"
-                  : "bg-primary-black text-primary-white hover:bg-primary-yellow hover:text-primary-black"
+              ${isSubmitting
+                ? "bg-black/60 text-white cursor-not-allowed"
+                : "bg-primary-black dark:bg-primary-yellow text-primary-white dark:text-primary-black hover:bg-primary-yellow hover:text-primary-black dark:hover:bg-white"
               }`}
           >
             {isSubmitting ? "Creating..." : "Create Account"}
           </button>
         </form>
 
-        <p className="mt-4 text-sm text-center text-primary-black">
+        <p className="mt-4 text-sm text-center text-primary-black dark:text-white">
           Already have an account?{" "}
           <button
             type="button"

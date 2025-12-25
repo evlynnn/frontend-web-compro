@@ -160,16 +160,16 @@ const Logging = (props) => {
   const showNoIncomingBadge = period === "all" && !incomingLogs.length;
 
   return (
-    <div className="min-h-screen bg-primary-black text-primary-white">
+    <div className="min-h-screen bg-secondary-gray dark:bg-primary-black text-primary-black dark:text-primary-white transition-colors duration-300">
       <Sidebar {...props} activeSection="logs" />
 
       <main className="ml-60 md:ml-64 px-4 py-6 md:px-8 md:py-8">
         <div className="max-w-6xl mx-auto">
-          <section className="rounded-3xl bg-white text-black shadow-sm border border-black/10 p-5 md:p-6 space-y-6">
+          <section className="rounded-3xl bg-white dark:bg-zinc-900 text-black dark:text-white shadow-sm border border-black/10 dark:border-zinc-700 p-5 md:p-6 space-y-6 transition-colors duration-300">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-semibold">Door Access Logs</h1>
+                  <h1 className="text-2xl font-semibold text-primary-black dark:text-white">Door Access Logs</h1>
 
                   {showNoIncomingBadge && (
                     <span className="text-[11px] rounded-full px-2 py-1 bg-yellow-100 text-yellow-700 font-semibold">
@@ -190,23 +190,23 @@ const Logging = (props) => {
                   )}
                 </div>
 
-                <p className="text-sm text-black/60">
+                <p className="text-sm text-black/60 dark:text-gray-400">
                   Monitor the door access history (Authorized / Unauthorized).
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <div className="rounded-xl border border-black/10 bg-white px-3 py-2">
-                  <div className="text-[11px] text-black/50">Total</div>
-                  <div className="text-sm font-semibold">{totalCount}</div>
+                <div className="rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2">
+                  <div className="text-[11px] text-black/50 dark:text-gray-400">Total</div>
+                  <div className="text-sm font-semibold text-primary-black dark:text-white">{totalCount}</div>
                 </div>
-                <div className="rounded-xl border border-black/10 bg-white px-3 py-2">
-                  <div className="text-[11px] text-black/50">Authorized</div>
-                  <div className="text-sm font-semibold">{authorizedCount}</div>
+                <div className="rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2">
+                  <div className="text-[11px] text-black/50 dark:text-gray-400">Authorized</div>
+                  <div className="text-sm font-semibold text-primary-black dark:text-white">{authorizedCount}</div>
                 </div>
-                <div className="rounded-xl border border-black/10 bg-white px-3 py-2">
-                  <div className="text-[11px] text-black/50">Unauthorized</div>
-                  <div className="text-sm font-semibold">{unauthorizedCount}</div>
+                <div className="rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2">
+                  <div className="text-[11px] text-black/50 dark:text-gray-400">Unauthorized</div>
+                  <div className="text-sm font-semibold text-primary-black dark:text-white">{unauthorizedCount}</div>
                 </div>
               </div>
             </div>
@@ -214,11 +214,11 @@ const Logging = (props) => {
             {/* Filters */}
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
               <div className="lg:col-span-3">
-                <label className="text-xs text-black/60">Period</label>
+                <label className="text-xs text-black/60 dark:text-gray-400">Period</label>
                 <select
                   value={period}
                   onChange={(e) => setPeriod(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
+                  className="mt-1 w-full rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 dark:text-white px-3 py-2 text-sm outline-none"
                 >
                   <option value="all">All Logs</option>
                   <option value="today">Today</option>
@@ -228,12 +228,12 @@ const Logging = (props) => {
               </div>
 
               <div className="lg:col-span-3">
-                <label className="text-xs text-black/60">
+                <label className="text-xs text-black/60 dark:text-gray-400">
                   {period === "date"
                     ? "Select date"
                     : period === "range"
-                    ? "Select start/end"
-                    : "—"}
+                      ? "Select start/end"
+                      : "—"}
                 </label>
 
                 <div className="mt-1 space-y-2">
@@ -242,7 +242,7 @@ const Logging = (props) => {
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
-                      className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
+                      className="w-full rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 dark:text-white px-3 py-2 text-sm outline-none"
                     />
                   )}
 
@@ -252,21 +252,21 @@ const Logging = (props) => {
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
+                        className="w-full rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 dark:text-white px-3 py-2 text-sm outline-none"
                         title="Start date"
                       />
                       <input
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
+                        className="w-full rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 dark:text-white px-3 py-2 text-sm outline-none"
                         title="End date"
                       />
                     </div>
                   )}
 
                   {(period === "all" || period === "today") && (
-                    <div className="w-full rounded-xl border border-black/10 bg-black/[0.02] px-3 py-2 text-sm text-black/50">
+                    <div className="w-full rounded-xl border border-black/10 dark:border-zinc-700 bg-black/[0.02] dark:bg-zinc-800 px-3 py-2 text-sm text-black/50 dark:text-gray-400">
                       {period === "all" ? "No date filter" : "Today"}
                     </div>
                   )}
@@ -274,11 +274,11 @@ const Logging = (props) => {
               </div>
 
               <div className="lg:col-span-3">
-                <label className="text-xs text-black/60">Status</label>
+                <label className="text-xs text-black/60 dark:text-gray-400">Status</label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
+                  className="mt-1 w-full rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 dark:text-white px-3 py-2 text-sm outline-none"
                 >
                   <option value="all">All</option>
                   <option value="authorized">Authorized</option>
@@ -287,18 +287,18 @@ const Logging = (props) => {
               </div>
 
               <div className="lg:col-span-3">
-                <label className="text-xs text-black/60">Search by username</label>
-                <div className="mt-1 flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2">
+                <label className="text-xs text-black/60 dark:text-gray-400">Search by username</label>
+                <div className="mt-1 flex items-center gap-2 rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2">
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search here..."
-                    className="w-full bg-transparent text-sm outline-none placeholder:text-black/30"
+                    className="w-full bg-transparent text-sm outline-none placeholder:text-black/30 dark:placeholder:text-gray-500 dark:text-white"
                   />
                   {search.trim() && (
                     <button
                       onClick={() => setSearch("")}
-                      className="text-xs text-black/60 hover:text-black"
+                      className="text-xs text-black/60 dark:text-gray-400 hover:text-black dark:hover:text-white"
                       type="button"
                       title="Clear"
                     >
@@ -310,33 +310,33 @@ const Logging = (props) => {
             </div>
 
             {/* Table */}
-            <div className="rounded-xl border border-black/10 bg-white">
+            <div className="rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800">
               <div className="max-h-[420px] overflow-y-auto overflow-x-auto rounded-xl">
                 <table className="min-w-full text-sm">
                   <thead
                     className="
-                      sticky top-0 z-20 bg-white
-                      border-b border-black/10
+                      sticky top-0 z-20 bg-white dark:bg-zinc-800
+                      border-b border-black/10 dark:border-zinc-700
                       shadow-[0_1px_0_0_rgba(0,0,0,0.08)]
                     "
                   >
                     <tr>
-                      <th className="px-4 py-3 text-left font-bold text-black/70">Username</th>
-                      <th className="px-4 py-3 text-left font-bold text-black/70">Role</th>
-                      <th className="px-4 py-3 text-left font-bold text-black/70">Timestamp</th>
-                      <th className="px-4 py-3 text-left font-bold text-black/70">Status</th>
+                      <th className="px-4 py-3 text-left font-bold text-black/70 dark:text-gray-300">Username</th>
+                      <th className="px-4 py-3 text-left font-bold text-black/70 dark:text-gray-300">Role</th>
+                      <th className="px-4 py-3 text-left font-bold text-black/70 dark:text-gray-300">Timestamp</th>
+                      <th className="px-4 py-3 text-left font-bold text-black/70 dark:text-gray-300">Status</th>
                     </tr>
                   </thead>
 
-                  <tbody className="divide-y divide-black/10">
+                  <tbody className="divide-y divide-black/10 dark:divide-zinc-700">
                     {filteredLogs.map((item, idx) => (
                       <tr
                         key={item.id ?? `${item.timestamp}-${idx}`}
-                        className="hover:bg-black/[0.03]"
+                        className="hover:bg-black/[0.03] dark:hover:bg-zinc-700/50"
                       >
-                        <td className="px-4 py-3 font-medium">{item.username}</td>
-                        <td className="px-4 py-3 text-black/70">{item.role ?? "-"}</td>
-                        <td className="px-4 py-3 text-black/70">{item.timestamp}</td>
+                        <td className="px-4 py-3 font-medium text-primary-black dark:text-white">{item.username}</td>
+                        <td className="px-4 py-3 text-black/70 dark:text-gray-400">{item.role ?? "-"}</td>
+                        <td className="px-4 py-3 text-black/70 dark:text-gray-400">{item.timestamp}</td>
                         <td className="px-4 py-3">
                           <span
                             className={[
@@ -354,7 +354,7 @@ const Logging = (props) => {
 
                     {!loading && filteredLogs.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-4 py-10 text-center text-black/50">
+                        <td colSpan={4} className="px-4 py-10 text-center text-black/50 dark:text-gray-400">
                           No matching data found.
                         </td>
                       </tr>

@@ -78,8 +78,8 @@ const RegisterRequest = (props) => {
           u.role === "rejected" || u.role === "Rejected"
             ? "Rejected"
             : u.role !== "pending" && !(u.needs_reset ?? u.needsReset)
-            ? "Accepted"
-            : "Pending",
+              ? "Accepted"
+              : "Pending",
       }));
 
       const onlyPendingAction = normalized.filter((x) => x.userRole === "pending" || x.needsReset === true);
@@ -219,15 +219,15 @@ const RegisterRequest = (props) => {
   };
 
   return (
-    <div className="min-h-screen bg-primary-black text-primary-white">
+    <div className="min-h-screen bg-secondary-gray dark:bg-primary-black text-primary-black dark:text-primary-white transition-colors duration-300">
       <Sidebar {...props} />
       <main className="ml-60 md:ml-64 px-4 py-6 md:px-8 md:py-8">
         <div className="max-w-6xl mx-auto">
-          <section className="rounded-3xl bg-white text-black shadow-sm border border-black/10 p-5 md:p-6 space-y-6">
+          <section className="rounded-3xl bg-white dark:bg-zinc-900 text-black dark:text-white shadow-sm border border-black/10 dark:border-zinc-700 p-5 md:p-6 space-y-6 transition-colors duration-300">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h1 className="text-2xl font-semibold">Register Requests</h1>
-                <p className="text-sm text-black/60">
+                <h1 className="text-2xl font-semibold text-primary-black dark:text-white">Register Requests</h1>
+                <p className="text-sm text-black/60 dark:text-gray-400">
                   Review user registration requests. Role is assigned when accepting.
                 </p>
 
@@ -239,18 +239,18 @@ const RegisterRequest = (props) => {
               </div>
 
               <div className="w-full sm:w-[320px]">
-                <label className="text-xs text-black/60">Search by username</label>
-                <div className="mt-1 flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2">
+                <label className="text-xs text-black/60 dark:text-gray-400">Search by username</label>
+                <div className="mt-1 flex items-center gap-2 rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2">
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search here..."
-                    className="w-full bg-transparent text-sm outline-none placeholder:text-black/30"
+                    className="w-full bg-transparent text-sm outline-none placeholder:text-black/30 dark:placeholder:text-gray-500 dark:text-white"
                   />
                   {search.trim() && (
                     <button
                       onClick={() => setSearch("")}
-                      className="text-xs text-black/60 hover:text-black"
+                      className="text-xs text-black/60 dark:text-gray-400 hover:text-black dark:hover:text-white"
                       type="button"
                       title="Clear"
                     >
@@ -262,37 +262,37 @@ const RegisterRequest = (props) => {
             </div>
 
             {loading && (
-              <div className="rounded-xl border border-black/10 bg-black/[0.02] px-4 py-3 text-sm text-black/60">
+              <div className="rounded-xl border border-black/10 dark:border-zinc-700 bg-black/[0.02] dark:bg-zinc-800 px-4 py-3 text-sm text-black/60 dark:text-gray-400">
                 Loading data from the database...
               </div>
             )}
 
-            <div className="rounded-xl border border-black/10 bg-white">
+            <div className="rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800">
               <div className="max-h-[420px] overflow-y-auto overflow-x-auto rounded-xl">
                 <table className="min-w-full text-sm table-fixed">
                   <thead
                     className="
-                      sticky top-0 z-20 bg-white
-                      border-b border-black/10
+                      sticky top-0 z-20 bg-white dark:bg-zinc-800
+                      border-b border-black/10 dark:border-zinc-700
                       shadow-[0_1px_0_0_rgba(0,0,0,0.08)]
                     "
                   >
                     <tr>
-                      <th className="w-[25%] px-4 py-3 text-left font-bold text-black/70">Username</th>
-                      <th className="w-[25%] px-4 py-3 text-left font-bold text-black/70">Requested At</th>
-                      <th className="w-[25%] px-4 py-3 text-left font-bold text-black/70">Status</th>
-                      <th className="w-[25%] px-4 py-3 text-center font-bold text-black/70">Action</th>
+                      <th className="w-[25%] px-4 py-3 text-left font-bold text-black/70 dark:text-gray-300">Username</th>
+                      <th className="w-[25%] px-4 py-3 text-left font-bold text-black/70 dark:text-gray-300">Requested At</th>
+                      <th className="w-[25%] px-4 py-3 text-left font-bold text-black/70 dark:text-gray-300">Status</th>
+                      <th className="w-[25%] px-4 py-3 text-center font-bold text-black/70 dark:text-gray-300">Action</th>
                     </tr>
                   </thead>
 
-                  <tbody className="divide-y divide-black/10">
+                  <tbody className="divide-y divide-black/10 dark:divide-zinc-700">
                     {filteredRequests.map((item) => {
                       const isActing = actionLoadingId === item.id;
 
                       return (
-                        <tr key={item.id} className="hover:bg-black/[0.03]">
-                          <td className="px-4 py-3 font-medium truncate">{item.username}</td>
-                          <td className="px-4 py-3 text-black/70 truncate">{formatRequestedAt(item.requestedAt)}</td>
+                        <tr key={item.id} className="hover:bg-black/[0.03] dark:hover:bg-zinc-700/50">
+                          <td className="px-4 py-3 font-medium truncate text-primary-black dark:text-white">{item.username}</td>
+                          <td className="px-4 py-3 text-black/70 dark:text-gray-400 truncate">{formatRequestedAt(item.requestedAt)}</td>
 
                           <td className="px-4 py-3 truncate">
                             <span
@@ -301,13 +301,13 @@ const RegisterRequest = (props) => {
                                 item.status === "Accepted"
                                   ? "bg-green-100 text-green-700"
                                   : item.status === "Rejected"
-                                  ? "bg-red-100 text-red-700"
-                                  : "bg-yellow-100 text-yellow-800",
+                                    ? "bg-red-100 text-red-700"
+                                    : "bg-yellow-100 text-yellow-800",
                               ].join(" ")}
                             >
                               {item.status}
                               {item.needsReset ? (
-                                <span className="ml-2 font-normal text-black/60">• Password Reset Request</span>
+                                <span className="ml-2 font-normal text-black/60 dark:text-gray-500">• Password Reset Request</span>
                               ) : null}
                             </span>
                           </td>
@@ -340,7 +340,7 @@ const RegisterRequest = (props) => {
                                 </button>
                               </div>
                             ) : (
-                              <div className="text-center text-xs text-black/40">No action</div>
+                              <div className="text-center text-xs text-black/40 dark:text-gray-500">No action</div>
                             )}
                           </td>
                         </tr>
@@ -349,7 +349,7 @@ const RegisterRequest = (props) => {
 
                     {!loading && filteredRequests.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-4 py-10 text-center text-black/50">
+                        <td colSpan={4} className="px-4 py-10 text-center text-black/50 dark:text-gray-400">
                           No register requests found.
                         </td>
                       </tr>
@@ -364,19 +364,19 @@ const RegisterRequest = (props) => {
         {appRoleModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
             <div className="absolute inset-0 bg-black/70" onClick={closeAssignAppRoleModal} />
-            <div className="relative w-full max-w-md rounded-2xl bg-white p-5 text-black shadow-xl">
+            <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-zinc-900 p-5 text-black dark:text-white shadow-xl">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold">Assign Access Role</h2>
-                  <p className="mt-1 text-sm text-black/60">
+                  <h2 className="text-lg font-semibold text-primary-black dark:text-white">Assign Access Role</h2>
+                  <p className="mt-1 text-sm text-black/60 dark:text-gray-400">
                     Select the application role for{" "}
-                    <span className="font-semibold text-black">{selectedRequest?.username}</span>
+                    <span className="font-semibold text-black dark:text-white">{selectedRequest?.username}</span>
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={closeAssignAppRoleModal}
-                  className="rounded-lg px-2 py-1 text-sm text-black/60 hover:bg-black/[0.04]"
+                  className="rounded-lg px-2 py-1 text-sm text-black/60 dark:text-gray-400 hover:bg-black/[0.04] dark:hover:bg-zinc-700"
                   title="Close"
                 >
                   ✕
@@ -396,7 +396,7 @@ const RegisterRequest = (props) => {
                         "w-full rounded-xl border px-4 py-3 text-left text-sm font-semibold transition",
                         active
                           ? "border-[var(--color-primary-yellow)] bg-[var(--color-primary-yellow)] text-black"
-                          : "border-black/10 bg-white text-black hover:bg-black/[0.03]",
+                          : "border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-black dark:text-white hover:bg-black/[0.03] dark:hover:bg-zinc-700",
                       ].join(" ")}
                     >
                       {r}
@@ -409,7 +409,7 @@ const RegisterRequest = (props) => {
                 <button
                   type="button"
                   onClick={closeAssignAppRoleModal}
-                  className="rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold hover:bg-black/[0.03]"
+                  className="rounded-lg border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-semibold text-primary-black dark:text-white hover:bg-black/[0.03] dark:hover:bg-zinc-700"
                 >
                   Cancel
                 </button>
@@ -421,7 +421,7 @@ const RegisterRequest = (props) => {
                     "rounded-lg px-4 py-2 text-sm font-semibold text-white",
                     selectedAppRole
                       ? "bg-[var(--color-chart-authorized)] hover:brightness-95"
-                      : "bg-black/10 text-black/40 cursor-not-allowed",
+                      : "bg-black/10 dark:bg-zinc-700 text-black/40 dark:text-gray-500 cursor-not-allowed",
                   ].join(" ")}
                 >
                   Continue
@@ -434,34 +434,34 @@ const RegisterRequest = (props) => {
         {confirmModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
             <div className="absolute inset-0 bg-black/70" onClick={closeConfirmModal} />
-            <div className="relative w-full max-w-md rounded-2xl bg-white p-5 text-black shadow-xl">
+            <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-zinc-900 p-5 text-black dark:text-white shadow-xl">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold">Confirmation</h2>
-                  <p className="mt-1 text-sm text-black/60">Please confirm the details below:</p>
+                  <h2 className="text-lg font-semibold text-primary-black dark:text-white">Confirmation</h2>
+                  <p className="mt-1 text-sm text-black/60 dark:text-gray-400">Please confirm the details below:</p>
                 </div>
                 <button
                   type="button"
                   onClick={closeConfirmModal}
-                  className="rounded-lg px-2 py-1 text-sm text-black/60 hover:bg-black/[0.04]"
+                  className="rounded-lg px-2 py-1 text-sm text-black/60 dark:text-gray-400 hover:bg-black/[0.04] dark:hover:bg-zinc-700"
                   title="Close"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="mt-4 rounded-xl border border-black/10 bg-black/[0.02] p-4 text-sm space-y-2">
+              <div className="mt-4 rounded-xl border border-black/10 dark:border-zinc-700 bg-black/[0.02] dark:bg-zinc-800 p-4 text-sm space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-black/60">Username</span>
-                  <span className="font-semibold">{selectedRequest?.username}</span>
+                  <span className="text-black/60 dark:text-gray-400">Username</span>
+                  <span className="font-semibold text-primary-black dark:text-white">{selectedRequest?.username}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-black/60">Current Status</span>
-                  <span className="font-semibold">{selectedRequest?.userRole}</span>
+                  <span className="text-black/60 dark:text-gray-400">Current Status</span>
+                  <span className="font-semibold text-primary-black dark:text-white">{selectedRequest?.userRole}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-black/60">Assigned Role</span>
-                  <span className="font-semibold">{selectedAppRole}</span>
+                  <span className="text-black/60 dark:text-gray-400">Assigned Role</span>
+                  <span className="font-semibold text-primary-black dark:text-white">{selectedAppRole}</span>
                 </div>
               </div>
 
@@ -469,7 +469,7 @@ const RegisterRequest = (props) => {
                 <button
                   type="button"
                   onClick={closeConfirmModal}
-                  className="rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold hover:bg-black/[0.03]"
+                  className="rounded-lg border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-semibold text-primary-black dark:text-white hover:bg-black/[0.03] dark:hover:bg-zinc-700"
                 >
                   Back
                 </button>
@@ -488,19 +488,19 @@ const RegisterRequest = (props) => {
         {rejectConfirmOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
             <div className="absolute inset-0 bg-black/70" onClick={closeRejectConfirm} />
-            <div className="relative w-full max-w-md rounded-2xl bg-white p-5 text-black shadow-xl">
+            <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-zinc-900 p-5 text-black dark:text-white shadow-xl">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold">Reject Confirmation</h2>
-                  <p className="mt-1 text-sm text-black/60">
+                  <h2 className="text-lg font-semibold text-primary-black dark:text-white">Reject Confirmation</h2>
+                  <p className="mt-1 text-sm text-black/60 dark:text-gray-400">
                     Are you sure you want to reject the request from{" "}
-                    <span className="font-semibold text-black">{selectedRejectRequest?.username}</span>?
+                    <span className="font-semibold text-black dark:text-white">{selectedRejectRequest?.username}</span>?
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={closeRejectConfirm}
-                  className="rounded-lg px-2 py-1 text-sm text-black/60 hover:bg-black/[0.04]"
+                  className="rounded-lg px-2 py-1 text-sm text-black/60 dark:text-gray-400 hover:bg-black/[0.04] dark:hover:bg-zinc-700"
                   title="Close"
                 >
                   ✕
@@ -511,7 +511,7 @@ const RegisterRequest = (props) => {
                 <button
                   type="button"
                   onClick={closeRejectConfirm}
-                  className="rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-semibold hover:bg-black/[0.03]"
+                  className="rounded-lg border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-semibold text-primary-black dark:text-white hover:bg-black/[0.03] dark:hover:bg-zinc-700"
                 >
                   Cancel
                 </button>

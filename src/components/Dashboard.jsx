@@ -119,10 +119,7 @@ const Dashboard = (props) => {
   const [nowTick, setNowTick] = useState(Date.now());
   const hourScrollRef = useRef(null);
 
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem("dashboard_theme");
-    return saved === "light" ? "light" : "dark";
-  });
+  const { theme, setTheme } = props;
 
   const sectionCameraRef = useRef(null);
   const sectionLogsRef = useRef(null);
@@ -170,7 +167,7 @@ const Dashboard = (props) => {
   }, []);
 
   useEffect(() => {
-    if (cameraStatus.streaming) return; 
+    if (cameraStatus.streaming) return;
 
     const fetchStatus = async () => {
       try {
@@ -316,12 +313,6 @@ const Dashboard = (props) => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "dark") root.classList.add("dark");
-    else root.classList.remove("dark");
-    localStorage.setItem("dashboard_theme", theme);
-  }, [theme]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -335,18 +326,18 @@ const Dashboard = (props) => {
   }, []);
 
   const logs = useMemo(() => {
-  return (logsFromBackend || [])
-    .map((x) => {
-      const d = parseTimestampWIB(x.timestamp);
-      return {
-        ...x,
-        _date: d,
-        _tsDisplay: formatTimestampWIB(d || x.timestamp),
-        authorized: typeof x.authorized === "string" ? x.authorized === "true" : !!x.authorized,
-      };
-    })
-    .filter((x) => x._date);
-}, [logsFromBackend]);
+    return (logsFromBackend || [])
+      .map((x) => {
+        const d = parseTimestampWIB(x.timestamp);
+        return {
+          ...x,
+          _date: d,
+          _tsDisplay: formatTimestampWIB(d || x.timestamp),
+          authorized: typeof x.authorized === "string" ? x.authorized === "true" : !!x.authorized,
+        };
+      })
+      .filter((x) => x._date);
+  }, [logsFromBackend]);
 
   const todayKey = useMemo(() => getTodayKeyWIB(), [nowTick]);
 
@@ -462,7 +453,7 @@ const Dashboard = (props) => {
   };
 
   return (
-    <div className="min-h-screen bg-primary-black text-primary-white">
+    <div className="min-h-screen bg-primary-black dark:bg-primary-black text-primary-white transition-colors duration-300">
       <Sidebar {...sidebarProps} />
 
       <main className="ml-60 md:ml-64 px-4 py-6 md:px-8 md:py-8">
@@ -471,14 +462,14 @@ const Dashboard = (props) => {
             <section
               ref={sectionCameraRef}
               id="camera"
-              className="scroll-mt-6 bg-primary-white text-primary-black rounded-3xl p-5 md:p-6 shadow-xl shadow-black/40"
+              className="scroll-mt-6 bg-primary-white dark:bg-zinc-900 text-primary-black dark:text-white rounded-3xl p-5 md:p-6 shadow-xl shadow-black/40 transition-colors duration-300"
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold text-primary-yellow uppercase tracking-[0.18em]">
                     Live Monitoring
                   </span>
-                  <h2 className="text-lg md:text-xl font-bold mt-1">AI Lab Door Camera</h2>
+                  <h2 className="text-lg md:text-xl font-bold mt-1 text-primary-black dark:text-white">AI Lab Door Camera</h2>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2 text-xs">
@@ -486,7 +477,7 @@ const Dashboard = (props) => {
                       className={`inline-flex h-2 w-2 rounded-full ${cameraStatus.streaming ? "bg-green-500 animate-pulse" : "bg-gray-400"
                         }`}
                     />
-                    <span className="text-gray-500">
+                    <span className="text-gray-500 dark:text-gray-400">
                       Camera • {cameraStatus.streaming ? "Streaming" : "Offline"}
                     </span>
                   </div>
@@ -495,14 +486,14 @@ const Dashboard = (props) => {
                       className={`inline-flex h-2 w-2 rounded-full ${wsConnected ? "bg-blue-500" : "bg-gray-400"
                         }`}
                     />
-                    <span className="text-gray-500">
+                    <span className="text-gray-500 dark:text-gray-400">
                       WS • {wsConnected ? "Connected" : "Disconnected"}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-2xl bg-secondary-gray h-[55vh] md:h-[65vh] lg:h-[65vh]">
+              <div className="relative overflow-hidden rounded-2xl bg-secondary-gray dark:bg-zinc-800 h-[55vh] md:h-[65vh] lg:h-[65vh]">
                 <CameraStream
                   streamUrl={streamUrl}
                   isStreaming={cameraStatus.streaming && !streamError}
@@ -581,7 +572,7 @@ const Dashboard = (props) => {
 
               {detectionEvents.length > 0 && (
                 <div className="mt-4">
-                  <h4 className="text-xs font-semibold text-gray-600 mb-2">Recent Detections (Live)</h4>
+                  <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Recent Detections (Live)</h4>
                   <div className="flex flex-wrap gap-2">
                     {detectionEvents.slice(0, 5).map((evt, idx) => (
                       <span
@@ -603,10 +594,10 @@ const Dashboard = (props) => {
               <div
                 ref={sectionLogsRef}
                 id="logs"
-                className="scroll-mt-6 bg-primary-white text-primary-black rounded-3xl p-4 md:p-5 shadow-lg shadow-black/40"
+                className="scroll-mt-6 bg-primary-white dark:bg-zinc-900 text-primary-black dark:text-white rounded-3xl p-4 md:p-5 shadow-lg shadow-black/40 transition-colors duration-300"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold">Recent Door Access</h3>
+                  <h3 className="text-sm font-semibold text-primary-black dark:text-white">Recent Door Access</h3>
                   <button
                     type="button"
                     onClick={() => navigate("/logging", { state: { preset: "today", logs } })}
@@ -617,7 +608,7 @@ const Dashboard = (props) => {
                 </div>
 
                 <div
-                  className="text-[11px] font-semibold text-gray-600 border-b border-gray-300 pb-2 grid"
+                  className="text-[11px] font-semibold text-gray-600 dark:text-gray-400 border-b border-gray-300 dark:border-zinc-700 pb-2 grid"
                   style={{ gridTemplateColumns: "1.6fr 1.4fr 1.2fr 1fr" }}
                 >
                   <span>Timestamps</span>
@@ -630,12 +621,12 @@ const Dashboard = (props) => {
                   {recentLogs.map((log, idx) => (
                     <div
                       key={log.id ?? `${log._tsDisplay}-${idx}`}
-                      className="grid items-center py-1 border-b border-gray-200 last:border-0"
+                      className="grid items-center py-1 border-b border-gray-200 dark:border-zinc-700 last:border-0"
                       style={{ gridTemplateColumns: "1.6fr 1.4fr 1.2fr 1fr" }}
                     >
-                      <span className="font-mono text-[11px]">{log._tsDisplay}</span>
-                      <span className="font-medium">{log.name}</span>
-                      <span className="text-gray-700">{log.role}</span>
+                      <span className="font-mono text-[11px] text-primary-black dark:text-white">{log._tsDisplay}</span>
+                      <span className="font-medium text-primary-black dark:text-white">{log.name}</span>
+                      <span className="text-gray-700 dark:text-gray-400">{log.role}</span>
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit ${log.authorized ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"
                           }`}
@@ -646,20 +637,20 @@ const Dashboard = (props) => {
                   ))}
 
                   {!recentLogs.length && (
-                    <div className="text-xs text-gray-500 py-3">Belum ada log untuk hari ini.</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 py-3">Belum ada log untuk hari ini.</div>
                   )}
                 </div>
               </div>
 
-              <div className="bg-primary-white text-primary-black rounded-3xl p-4 md:p-5 shadow-lg shadow-black/40">
+              <div className="bg-primary-white dark:bg-zinc-900 text-primary-black dark:text-white rounded-3xl p-4 md:p-5 shadow-lg shadow-black/40 transition-colors duration-300">
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <h3 className="text-sm font-semibold">Door Access Summary</h3>
-                    <span className="text-[11px] text-gray-500">
+                    <h3 className="text-sm font-semibold text-primary-black dark:text-white">Door Access Summary</h3>
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400">
                       Today at AI Lab{" "}
                       {peakHourEntry && (
                         <>
-                          • Peak at <span className="font-semibold text-primary-black">{peakHourEntry.time}</span>{" "}
+                          • Peak at <span className="font-semibold text-primary-black dark:text-white">{peakHourEntry.time}</span>{" "}
                           ({peakHourEntry.total} access)
                         </>
                       )}
@@ -667,41 +658,39 @@ const Dashboard = (props) => {
                   </div>
                 </div>
 
-                <div className="mt-4">
-                  <p className="text-[11px] text-gray-500 mb-2">Who’s in the lab today</p>
-                  <div className="flex flex-wrap gap-2">
-                    {authorizedPeopleToday.length ? (
-                      authorizedPeopleToday.slice(0, 10).map((n) => (
-                        <span
-                          key={n}
-                          className="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold"
-                        >
-                          {n}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-gray-500">Belum ada authorized hari ini.</span>
-                    )}
-                  </div>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">Who's in the lab today</p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {authorizedPeopleToday.length ? (
+                    authorizedPeopleToday.slice(0, 10).map((n) => (
+                      <span
+                        key={n}
+                        className="px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 text-[10px] font-semibold"
+                      >
+                        {n}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Belum ada authorized hari ini.</span>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 text-[11px] mt-3">
-                  <div className="rounded-2xl bg-secondary-gray px-3 py-2">
-                    <p className="text-gray-500">Total Today</p>
-                    <p className="text-sm font-semibold text-primary-black">{todaySummary.total}</p>
+                  <div className="rounded-2xl bg-secondary-gray dark:bg-zinc-800 px-3 py-2">
+                    <p className="text-gray-500 dark:text-gray-400">Total Today</p>
+                    <p className="text-sm font-semibold text-primary-black dark:text-white">{todaySummary.total}</p>
                   </div>
-                  <div className="rounded-2xl bg-secondary-gray px-3 py-2">
-                    <p className="text-gray-500">Authorized</p>
-                    <p className="text-sm font-semibold text-primary-black">{todaySummary.authorized}</p>
+                  <div className="rounded-2xl bg-secondary-gray dark:bg-zinc-800 px-3 py-2">
+                    <p className="text-gray-500 dark:text-gray-400">Authorized</p>
+                    <p className="text-sm font-semibold text-primary-black dark:text-white">{todaySummary.authorized}</p>
                   </div>
-                  <div className="rounded-2xl bg-secondary-gray px-3 py-2">
-                    <p className="text-gray-500">Unauthorized</p>
-                    <p className="text-sm font-semibold text-primary-black">{todaySummary.unauthorized}</p>
+                  <div className="rounded-2xl bg-secondary-gray dark:bg-zinc-800 px-3 py-2">
+                    <p className="text-gray-500 dark:text-gray-400">Unauthorized</p>
+                    <p className="text-sm font-semibold text-primary-black dark:text-white">{todaySummary.unauthorized}</p>
                   </div>
                 </div>
 
                 <div className="mt-4">
-                  <p className="text-[11px] text-gray-500 mb-2">Access per hour (today)</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">Access per hour (today)</p>
 
                   <div className="flex h-32 w-full">
                     <div className="w-14 flex-shrink-0">
@@ -746,18 +735,18 @@ const Dashboard = (props) => {
             <section
               ref={sectionAnalyticsRef}
               id="analytics"
-              className="scroll-mt-6 bg-primary-white text-primary-black rounded-3xl p-5 md:p-6 shadow-xl shadow-black/40"
+              className="scroll-mt-6 bg-primary-white dark:bg-zinc-900 text-primary-black dark:text-white rounded-3xl p-5 md:p-6 shadow-xl shadow-black/40 transition-colors duration-300"
             >
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h2 className="text-sm font-semibold">Access Statistics</h2>
-                  <p className="text-[11px] text-gray-500">Recap from logs (daily & monthly)</p>
+                  <h2 className="text-sm font-semibold text-primary-black dark:text-white">Access Statistics</h2>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Recap from logs (daily & monthly)</p>
                 </div>
 
                 <select
                   value={recapMode}
                   onChange={(e) => setRecapMode(e.target.value)}
-                  className="text-[11px] border border-gray-200 rounded-full px-3 py-1 bg-white"
+                  className="text-[11px] border border-gray-200 dark:border-zinc-700 rounded-full px-3 py-1 bg-white dark:bg-zinc-800 dark:text-white"
                 >
                   <option value="all">All logs</option>
                   <option value="7d">Last 7 days</option>
@@ -829,7 +818,7 @@ const Dashboard = (props) => {
                 </ResponsiveContainer>
               </div>
 
-              <div className="mt-3 flex flex-wrap justify-center items-center gap-4 text-[11px] text-gray-600">
+              <div className="mt-3 flex flex-wrap justify-center items-center gap-4 text-[11px] text-gray-600 dark:text-gray-400">
                 <span className="inline-flex items-center gap-2">
                   <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--color-chart-total)" }} />
                   Total
@@ -845,21 +834,21 @@ const Dashboard = (props) => {
               </div>
 
               <div className="mt-4 grid grid-cols-3 gap-2 text-[11px]">
-                <div className="rounded-2xl bg-secondary-gray px-3 py-2">
-                  <p className="text-gray-500">Total</p>
-                  <p className="text-sm font-semibold text-primary-black">
+                <div className="rounded-2xl bg-secondary-gray dark:bg-zinc-800 px-3 py-2">
+                  <p className="text-gray-500 dark:text-gray-400">Total</p>
+                  <p className="text-sm font-semibold text-primary-black dark:text-white">
                     {recapData.reduce((s, x) => s + (x.total || 0), 0)}
                   </p>
                 </div>
-                <div className="rounded-2xl bg-secondary-gray px-3 py-2">
-                  <p className="text-gray-500">Authorized</p>
-                  <p className="text-sm font-semibold text-primary-black">
+                <div className="rounded-2xl bg-secondary-gray dark:bg-zinc-800 px-3 py-2">
+                  <p className="text-gray-500 dark:text-gray-400">Authorized</p>
+                  <p className="text-sm font-semibold text-primary-black dark:text-white">
                     {recapData.reduce((s, x) => s + (x.authorized || 0), 0)}
                   </p>
                 </div>
-                <div className="rounded-2xl bg-secondary-gray px-3 py-2">
-                  <p className="text-gray-500">Unauthorized</p>
-                  <p className="text-sm font-semibold text-primary-black">
+                <div className="rounded-2xl bg-secondary-gray dark:bg-zinc-800 px-3 py-2">
+                  <p className="text-gray-500 dark:text-gray-400">Unauthorized</p>
+                  <p className="text-sm font-semibold text-primary-black dark:text-white">
                     {recapData.reduce((s, x) => s + (x.unauthorized || 0), 0)}
                   </p>
                 </div>
