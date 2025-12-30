@@ -70,9 +70,7 @@ const ResetPassword = () => {
       setSubmitted(true);
     } catch (err) {
       const backendMsg =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        err?.message
+        err?.response?.data?.error || err?.response?.data?.message || err?.message;
 
       setErrorUsername(backendMsg);
     } finally {
@@ -81,28 +79,44 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-secondary-gray dark:bg-primary-black flex items-center justify-center relative overflow-hidden transition-colors duration-300">
-      <div className="relative z-10 w-full max-w-md px-6 sm:px-10 py-10 sm:py-12 bg-primary-white dark:bg-zinc-900 rounded-3xl shadow-xl text-center transition-colors duration-300">
-        <div className="mb-5 flex flex-col items-center">
+    <div className="min-h-screen bg-secondary-gray dark:bg-primary-black flex items-center justify-center px-4 xs:px-5 sm:px-6 py-8 sm:py-10 relative overflow-hidden transition-colors duration-300">
+      <div
+        className={[
+          "relative z-10 w-full",
+          "max-w-sm xs:max-w-md md:max-w-lg lg:max-w-md",
+          "px-5 xs:px-6 sm:px-10",
+          "py-8 xs:py-9 sm:py-12",
+          "bg-primary-white dark:bg-zinc-900",
+          "rounded-3xl shadow-xl text-center transition-colors duration-300",
+        ].join(" ")}
+      >
+        <div className="mb-4 xs:mb-5 flex flex-col items-center">
           <div className="rounded-full p-3 bg-white/60 shadow-sm ring-2 ring-gray-300">
-            <img src={Logo} alt="App Logo" className="w-18 h-18 object-contain" />
+            <img
+              src={Logo}
+              alt="App Logo"
+              className="w-14 h-14 xs:w-16 xs:h-16 sm:w-18 sm:h-18 object-contain"
+            />
           </div>
         </div>
 
         {!submitted ? (
           <>
-            <h1 className="text-xl sm:text-2xl font-bold text-primary-black dark:text-white mb-2">
+            <h1 className="text-lg xs:text-xl sm:text-2xl font-bold text-primary-black dark:text-white mb-2">
               Reset Password
             </h1>
 
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
+            <p className="text-xs xs:text-sm text-gray-500 dark:text-gray-400 mb-6 sm:mb-8">
               Submit a reset request. Your new password will be applied after approval by the Verificator.
             </p>
 
-            <form className="space-y-5 text-left" onSubmit={handleSubmit}>
+            <form className="space-y-4 sm:space-y-5 text-left" onSubmit={handleSubmit}>
               {/* Username */}
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-primary-black dark:text-white">Username</label>
+                <label className="block text-xs xs:text-sm font-medium text-primary-black dark:text-white">
+                  Username
+                </label>
+
                 <input
                   type="text"
                   placeholder="Enter your username"
@@ -112,16 +126,24 @@ const ResetPassword = () => {
                     setUsername(e.target.value);
                     if (errorUsername) setErrorUsername("");
                   }}
-                  className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 bg-white dark:bg-zinc-800 dark:text-white
-                    ${errorUsername ? "border-red-500 focus:ring-red-400" : "border-gray-300 dark:border-zinc-700 focus:ring-primary-yellow"}
-                    ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""}`}
+                  className={[
+                    "w-full rounded-lg border px-3 py-2.5 sm:py-2 text-xs xs:text-sm outline-none focus:ring-2",
+                    "bg-white dark:bg-zinc-800 dark:text-white",
+                    errorUsername
+                      ? "border-red-500 focus:ring-red-400"
+                      : "border-gray-300 dark:border-zinc-700 focus:ring-primary-yellow",
+                    isSubmitting ? "opacity-70 cursor-not-allowed" : "",
+                  ].join(" ")}
                 />
+
                 {errorUsername && <p className="text-red-500 text-xs mt-1">{errorUsername}</p>}
               </div>
 
               {/* New Password */}
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-primary-black dark:text-white">New Password</label>
+                <label className="block text-xs xs:text-sm font-medium text-primary-black dark:text-white">
+                  New Password
+                </label>
 
                 <div className="relative">
                   <input
@@ -133,29 +155,45 @@ const ResetPassword = () => {
                       setNewPassword(e.target.value);
                       if (errorNewPassword) setErrorNewPassword("");
                     }}
-                    className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 bg-white dark:bg-zinc-800 dark:text-white
-                      ${errorNewPassword ? "border-red-500 focus:ring-red-400" : "border-gray-300 dark:border-zinc-700 focus:ring-primary-yellow"}
-                      ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""}`}
+                    className={[
+                      "w-full rounded-lg border px-3 py-2.5 sm:py-2 pr-10 text-xs xs:text-sm outline-none focus:ring-2",
+                      "bg-white dark:bg-zinc-800 dark:text-white",
+                      errorNewPassword
+                        ? "border-red-500 focus:ring-red-400"
+                        : "border-gray-300 dark:border-zinc-700 focus:ring-primary-yellow",
+                      isSubmitting ? "opacity-70 cursor-not-allowed" : "",
+                    ].join(" ")}
                   />
 
                   <button
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => setShowNewPassword((prev) => !prev)}
-                    className={`absolute inset-y-0 right-3 flex items-center text-gray-600 dark:text-gray-400 hover:text-primary-black dark:hover:text-white ${isSubmitting ? "opacity-60 cursor-not-allowed" : ""
-                      }`}
+                    className={[
+                      "absolute inset-y-0 right-2.5 flex items-center px-1",
+                      "text-gray-600 dark:text-gray-400 hover:text-primary-black dark:hover:text-white",
+                      isSubmitting ? "opacity-60 cursor-not-allowed" : "",
+                    ].join(" ")}
                     aria-label={showNewPassword ? "Hide password" : "Show password"}
                   >
-                    {showNewPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                    {showNewPassword ? (
+                      <VisibilityOff fontSize="small" />
+                    ) : (
+                      <Visibility fontSize="small" />
+                    )}
                   </button>
                 </div>
 
-                {errorNewPassword && <p className="text-red-500 text-xs mt-1">{errorNewPassword}</p>}
+                {errorNewPassword && (
+                  <p className="text-red-500 text-xs mt-1">{errorNewPassword}</p>
+                )}
               </div>
 
               {/* Confirm New Password */}
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-primary-black dark:text-white">Confirm New Password</label>
+                <label className="block text-xs xs:text-sm font-medium text-primary-black dark:text-white">
+                  Confirm New Password
+                </label>
 
                 <div className="relative">
                   <input
@@ -167,20 +205,32 @@ const ResetPassword = () => {
                       setConfirmNewPass(e.target.value);
                       if (errorConfirm) setErrorConfirm("");
                     }}
-                    className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 bg-white dark:bg-zinc-800 dark:text-white
-                      ${errorConfirm ? "border-red-500 focus:ring-red-400" : "border-gray-300 dark:border-zinc-700 focus:ring-primary-yellow"}
-                      ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""}`}
+                    className={[
+                      "w-full rounded-lg border px-3 py-2.5 sm:py-2 pr-10 text-xs xs:text-sm outline-none focus:ring-2",
+                      "bg-white dark:bg-zinc-800 dark:text-white",
+                      errorConfirm
+                        ? "border-red-500 focus:ring-red-400"
+                        : "border-gray-300 dark:border-zinc-700 focus:ring-primary-yellow",
+                      isSubmitting ? "opacity-70 cursor-not-allowed" : "",
+                    ].join(" ")}
                   />
 
                   <button
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => setShowConfirmNewPass((prev) => !prev)}
-                    className={`absolute inset-y-0 right-3 flex items-center text-gray-600 dark:text-gray-400 hover:text-primary-black dark:hover:text-white ${isSubmitting ? "opacity-60 cursor-not-allowed" : ""
-                      }`}
+                    className={[
+                      "absolute inset-y-0 right-2.5 flex items-center px-1",
+                      "text-gray-600 dark:text-gray-400 hover:text-primary-black dark:hover:text-white",
+                      isSubmitting ? "opacity-60 cursor-not-allowed" : "",
+                    ].join(" ")}
                     aria-label={showConfirmNewPass ? "Hide password" : "Show password"}
                   >
-                    {showConfirmNewPass ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                    {showConfirmNewPass ? (
+                      <VisibilityOff fontSize="small" />
+                    ) : (
+                      <Visibility fontSize="small" />
+                    )}
                   </button>
                 </div>
 
@@ -191,22 +241,25 @@ const ResetPassword = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`mt-4 w-full rounded-lg py-2.5 text-sm font-semibold transition-colors
-                  ${isSubmitting
+                className={[
+                  "mt-2 w-full rounded-lg py-2.5 sm:py-2",
+                  "text-xs xs:text-sm font-semibold transition-colors",
+                  isSubmitting
                     ? "bg-black/60 text-primary-white cursor-not-allowed"
-                    : "bg-primary-black dark:bg-primary-yellow text-primary-white dark:text-primary-black hover:bg-primary-yellow hover:text-primary-black dark:hover:bg-white"
-                  }`}
+                    : "bg-primary-black dark:bg-primary-yellow text-primary-white dark:text-primary-black hover:bg-primary-yellow hover:text-primary-black dark:hover:bg-white",
+                  "disabled:opacity-60 disabled:cursor-not-allowed",
+                ].join(" ")}
               >
                 {isSubmitting ? "Sending Request..." : "Reset Password"}
               </button>
             </form>
 
-            <p className="mt-4 text-sm text-center text-primary-black dark:text-white">
+            <p className="mt-4 text-xs xs:text-sm text-center text-primary-black dark:text-white">
               Remember your password?{" "}
               <button
                 type="button"
                 onClick={() => navigate("/")}
-                className="font-semibold underline underline-offset-2"
+                className="font-semibold underline underline-offset-2 disabled:opacity-60"
                 disabled={isSubmitting}
               >
                 Back to Sign in
@@ -215,20 +268,22 @@ const ResetPassword = () => {
           </>
         ) : (
           <>
-            <h1 className="text-xl sm:text-2xl font-bold text-primary-black dark:text-white mb-2">
+            <h1 className="text-lg xs:text-xl sm:text-2xl font-bold text-primary-black dark:text-white mb-2">
               Request Sent ✅
             </h1>
 
-            <div className="mt-6 text-left rounded-2xl bg-secondary-gray/60 dark:bg-zinc-800 p-4">
-              <p className="text-sm text-primary-black dark:text-white font-semibold">
+            <div className="mt-5 sm:mt-6 text-left rounded-2xl bg-secondary-gray/60 dark:bg-zinc-800 p-4 sm:p-5">
+              <p className="text-xs xs:text-sm text-primary-black dark:text-white font-semibold">
                 {successMessage || "Your password reset request has been submitted."}
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                It is now waiting for approval from the <span className="font-semibold">Verificator</span>.
+
+              <p className="text-[11px] xs:text-sm text-gray-600 dark:text-gray-400 mt-1">
+                It is now waiting for approval from the{" "}
+                <span className="font-semibold">Verificator</span>.
               </p>
 
-              <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-                <p>
+              <div className="mt-4 text-[11px] xs:text-xs text-gray-500 dark:text-gray-400">
+                <p className="break-words">
                   <span className="font-semibold text-primary-black dark:text-white">Username:</span>{" "}
                   {username || "-"}
                 </p>
@@ -239,7 +294,12 @@ const ResetPassword = () => {
             <button
               type="button"
               onClick={() => navigate("/")}
-              className="mt-6 w-full rounded-lg bg-primary-black dark:bg-primary-yellow py-2.5 text-sm font-semibold text-primary-white dark:text-primary-black hover:bg-primary-yellow hover:text-primary-black dark:hover:bg-white transition-colors"
+              className={[
+                "mt-6 w-full rounded-lg py-2.5 sm:py-2",
+                "text-xs xs:text-sm font-semibold transition-colors",
+                "bg-primary-black dark:bg-primary-yellow text-primary-white dark:text-primary-black",
+                "hover:bg-primary-yellow hover:text-primary-black dark:hover:bg-white",
+              ].join(" ")}
             >
               Back to Sign in
             </button>

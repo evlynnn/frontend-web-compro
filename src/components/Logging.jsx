@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { getFilteredLogs } from "../services/logService";
+import IconButton from "@mui/material/IconButton";
+import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
@@ -48,6 +50,28 @@ const Logging = (props) => {
   const [apiLogs, setApiLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errMsg, setErrMsg] = useState("");
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => setSidebarOpen(mq.matches);
+    apply();
+
+    if (mq.addEventListener) mq.addEventListener("change", apply);
+    else mq.addListener(apply);
+
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener("change", apply);
+      else mq.removeListener(apply);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/";
+  };
 
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   useEffect(() => {
@@ -108,10 +132,7 @@ const Logging = (props) => {
     };
 
     run();
-
-    return () => {
-      controller.abort();
-    };
+    return () => controller.abort();
   }, [period, selectedDate, startDate, endDate, debouncedSearch]);
 
   const sourceLogs = useMemo(() => {
@@ -159,17 +180,52 @@ const Logging = (props) => {
   const unauthorizedCount = totalCount - authorizedCount;
   const showNoIncomingBadge = period === "all" && !incomingLogs.length;
 
-  return (
-    <div className="min-h-screen bg-secondary-gray dark:bg-primary-black text-primary-black dark:text-primary-white transition-colors duration-300">
-      <Sidebar {...props} activeSection="logs" />
+  const sidebarProps = {
+    ...props,
+    activeSection: "logs",
+    handleLogout,
+    sidebarOpen,
+    setSidebarOpen,
+  };
 
-      <main className="ml-60 md:ml-64 px-4 py-6 md:px-8 md:py-8">
+  return (
+    <div className="min-h-screen bg-secondary-gray dark:bg-primary-black text-primary-black dark:text-primary-white transition-colors duration-300 overflow-x-hidden">
+      {sidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar overlay"
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+        />
+      )}
+
+      <Sidebar {...sidebarProps} />
+
+      <header className="fixed top-0 left-0 right-0 z-[9999] md:hidden">
+        <div className="h-14 bg-primary-black/80 backdrop-blur-md border-b border-white/10 flex items-center px-3">
+          <IconButton
+            onClick={() => setSidebarOpen((v) => !v)}
+            aria-label="Open sidebar"
+            sx={{
+              "&:hover": { backgroundColor: "rgba(255,255,255,0.15)" },
+            }}
+          >
+            <MenuRoundedIcon sx={{ color: "#fff" }} />
+          </IconButton>
+
+          <span className="ml-2 text-sm font-semibold text-white">Door Access Logs</span>
+        </div>
+      </header>
+
+      <main className="px-4 py-6 pt-16 md:pt-8 md:px-8 md:py-8 md:pl-64">
         <div className="max-w-6xl mx-auto">
           <section className="rounded-3xl bg-white dark:bg-zinc-900 text-black dark:text-white shadow-sm border border-black/10 dark:border-zinc-700 p-5 md:p-6 space-y-6 transition-colors duration-300">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-semibold text-primary-black dark:text-white">Door Access Logs</h1>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className="text-2xl font-semibold text-primary-black dark:text-white">
+                    Door Access Logs
+                  </h1>
 
                   {showNoIncomingBadge && (
                     <span className="text-[11px] rounded-full px-2 py-1 bg-yellow-100 text-yellow-700 font-semibold">
@@ -195,16 +251,18 @@ const Logging = (props) => {
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-2 grid-cols-3 md:grid-cols-2 lg:grid-cols-3 w-full md:w-auto">
                 <div className="rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2">
                   <div className="text-[11px] text-black/50 dark:text-gray-400">Total</div>
                   <div className="text-sm font-semibold text-primary-black dark:text-white">{totalCount}</div>
                 </div>
+
                 <div className="rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2">
                   <div className="text-[11px] text-black/50 dark:text-gray-400">Authorized</div>
                   <div className="text-sm font-semibold text-primary-black dark:text-white">{authorizedCount}</div>
                 </div>
-                <div className="rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2">
+
+                <div className="rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 md:col-span-2 lg:col-span-1">
                   <div className="text-[11px] text-black/50 dark:text-gray-400">Unauthorized</div>
                   <div className="text-sm font-semibold text-primary-black dark:text-white">{unauthorizedCount}</div>
                 </div>
@@ -212,7 +270,7 @@ const Logging = (props) => {
             </div>
 
             {/* Filters */}
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-12">
               <div className="lg:col-span-3">
                 <label className="text-xs text-black/60 dark:text-gray-400">Period</label>
                 <select
@@ -229,11 +287,7 @@ const Logging = (props) => {
 
               <div className="lg:col-span-3">
                 <label className="text-xs text-black/60 dark:text-gray-400">
-                  {period === "date"
-                    ? "Select date"
-                    : period === "range"
-                      ? "Select start/end"
-                      : "—"}
+                  {period === "date" ? "Select date" : period === "range" ? "Select start/end" : "—"}
                 </label>
 
                 <div className="mt-1 space-y-2">
@@ -273,7 +327,7 @@ const Logging = (props) => {
                 </div>
               </div>
 
-              <div className="lg:col-span-3">
+              <div className="lg:col-span-3 md:col-span-1">
                 <label className="text-xs text-black/60 dark:text-gray-400">Status</label>
                 <select
                   value={statusFilter}
@@ -286,7 +340,7 @@ const Logging = (props) => {
                 </select>
               </div>
 
-              <div className="lg:col-span-3">
+              <div className="lg:col-span-3 md:col-span-1">
                 <label className="text-xs text-black/60 dark:text-gray-400">Search by username</label>
                 <div className="mt-1 flex items-center gap-2 rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2">
                   <input
@@ -311,8 +365,8 @@ const Logging = (props) => {
 
             {/* Table */}
             <div className="rounded-xl border border-black/10 dark:border-zinc-700 bg-white dark:bg-zinc-800">
-              <div className="max-h-[420px] overflow-y-auto overflow-x-auto rounded-xl">
-                <table className="min-w-full text-sm">
+              <div className="max-h-[420px] overflow-y-auto overflow-x-hidden md:overflow-x-auto rounded-xl">
+                <table className="w-full text-sm table-fixed">
                   <thead
                     className="
                       sticky top-0 z-20 bg-white dark:bg-zinc-800
@@ -321,10 +375,21 @@ const Logging = (props) => {
                     "
                   >
                     <tr>
-                      <th className="px-4 py-3 text-left font-bold text-black/70 dark:text-gray-300">Username</th>
-                      <th className="px-4 py-3 text-left font-bold text-black/70 dark:text-gray-300">Role</th>
-                      <th className="px-4 py-3 text-left font-bold text-black/70 dark:text-gray-300">Timestamp</th>
-                      <th className="px-4 py-3 text-left font-bold text-black/70 dark:text-gray-300">Status</th>
+                      <th className="px-4 py-3 text-left font-bold text-black/70 dark:text-gray-300">
+                        Username
+                      </th>
+
+                      <th className="hidden md:table-cell px-4 py-3 text-left font-bold text-black/70 dark:text-gray-300">
+                        Role
+                      </th>
+
+                      <th className="px-4 py-3 text-left font-bold text-black/70 dark:text-gray-300">
+                        Timestamp
+                      </th>
+
+                      <th className="px-4 py-3 text-left font-bold text-black/70 dark:text-gray-300">
+                        Status
+                      </th>
                     </tr>
                   </thead>
 
@@ -334,16 +399,23 @@ const Logging = (props) => {
                         key={item.id ?? `${item.timestamp}-${idx}`}
                         className="hover:bg-black/[0.03] dark:hover:bg-zinc-700/50"
                       >
-                        <td className="px-4 py-3 font-medium text-primary-black dark:text-white">{item.username}</td>
-                        <td className="px-4 py-3 text-black/70 dark:text-gray-400">{item.role ?? "-"}</td>
-                        <td className="px-4 py-3 text-black/70 dark:text-gray-400">{item.timestamp}</td>
+                        <td className="px-4 py-3 font-medium text-primary-black dark:text-white">
+                          {item.username}
+                        </td>
+
+                        <td className="hidden md:table-cell px-4 py-3 text-black/70 dark:text-gray-400">
+                          {item.role ?? "-"}
+                        </td>
+
+                        <td className="px-4 py-3 text-[11px] md:text-sm text-black/70 dark:text-gray-400">
+                          {item.timestamp}
+                        </td>
+
                         <td className="px-4 py-3">
                           <span
                             className={[
                               "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold",
-                              item.authorized
-                                ? "bg-green-100 text-green-700"
-                                : "bg-red-100 text-red-700",
+                              item.authorized ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700",
                             ].join(" ")}
                           >
                             {item.authorized ? "Authorized" : "Unauthorized"}

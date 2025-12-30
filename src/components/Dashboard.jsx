@@ -8,8 +8,9 @@ import { getStreamUrl, getCameraStatus, startCamera, stopCamera} from "../servic
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
-import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
 import { getLogs } from "../services/logService";
+import IconButton from "@mui/material/IconButton";
+import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 
 const TZ_ID = "Asia/Jakarta";
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -245,8 +246,6 @@ const Dashboard = (props) => {
   const [nowTick, setNowTick] = useState(Date.now());
   const hourScrollRef = useRef(null);
 
-  const { theme, setTheme } = props;
-
   const sectionCameraRef = useRef(null);
   const sectionLogsRef = useRef(null);
   const sectionAnalyticsRef = useRef(null);
@@ -465,6 +464,24 @@ const Dashboard = (props) => {
       .filter((x) => x._date);
   }, [logsFromBackend]);
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [isXsSm, setIsXsSm] = useState(() => !window.matchMedia("(min-width: 768px)").matches);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)"); 
+    const apply = () => setIsXsSm(!mq.matches);
+    apply();
+
+    if (mq.addEventListener) mq.addEventListener("change", apply);
+    else mq.addListener(apply);
+
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener("change", apply);
+      else mq.removeListener(apply);
+    };
+  }, []);
+
   const todayKey = useMemo(() => getTodayKeyWIB(), [nowTick]);
 
   const logsToday = useMemo(() => {
@@ -533,28 +550,55 @@ const Dashboard = (props) => {
   activeSection,
   scrollToSection,
   handleLogout,
+  sidebarOpen,
+  setSidebarOpen,
 };
 
   return (
-    <div className="min-h-screen bg-primary-black dark:bg-primary-black text-primary-white transition-colors duration-300">
+    <div className="min-h-screen bg-primary-black dark:bg-primary-black text-primary-white transition-colors duration-300 overflow-x-hidden">
+      {sidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar overlay"
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+        />
+      )}
+
       <Sidebar {...sidebarProps} />
 
-      <main className="ml-60 md:ml-64 px-4 py-6 md:px-8 md:py-8">
-        <div className="max-w-6xl mx-auto grid gap-6 lg:grid-cols-[2fr,1.1fr]">
-          <div className="space-y-6">
+      <header className="fixed top-0 left-0 right-0 z-[9999] md:hidden">
+        <div className="h-14 bg-primary-black/80 backdrop-blur-md border-b border-white/10 flex items-center px-3">
+          <IconButton
+            onClick={() => setSidebarOpen((v) => !v)}
+            aria-label="Open sidebar"
+            sx={{
+              "&:hover": {
+                backgroundColor: "rgba(255,255,255,0.15)",
+              },
+            }}
+          >
+            <MenuRoundedIcon sx={{ color: "#fff" }} />
+          </IconButton>
+        </div>
+      </header>
+
+      <main className="px-4 py-6 pt-16 md:pt-8 md:px-8 md:py-8 md:pl-64">
+        <div className="w-full max-w-full md:max-w-6xl mx-auto grid gap-6 lg:grid-cols-[2fr,1.1fr] xl:grid-cols-[2.2fr,1fr] min-w-0">
+          <div className="space-y-6 min-w-0">
             <section
               ref={sectionCameraRef}
               id="camera"
-              className="scroll-mt-6 bg-primary-white dark:bg-zinc-900 text-primary-black dark:text-white rounded-3xl p-5 md:p-6 shadow-xl shadow-black/40 transition-colors duration-300"
+              className="scroll-mt-6 bg-primary-white dark:bg-zinc-900 text-primary-black dark:text-white rounded-3xl p-5 md:p-6 shadow-xl shadow-black/40 transition-colors duration-300 min-w-0"
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold text-primary-yellow uppercase tracking-[0.18em]">
                     Live Monitoring
                   </span>
                   <h2 className="text-lg md:text-xl font-bold mt-1 text-primary-black dark:text-white">AI Lab Door Camera</h2>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2 text-xs">
                     <span
                       className={`inline-flex h-2 w-2 rounded-full ${cameraStatus.streaming ? "bg-green-500 animate-pulse" : "bg-gray-400"
@@ -576,7 +620,7 @@ const Dashboard = (props) => {
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-2xl bg-secondary-gray dark:bg-zinc-800 h-[55vh] md:h-[65vh] lg:h-[65vh]">
+              <div className="relative overflow-hidden rounded-2xl bg-secondary-gray dark:bg-zinc-800 w-full max-w-full min-w-0 h-[45vh] sm:h-auto sm:aspect-video sm:max-h-[420px] md:max-h-[460px] lg:max-h-[520px]">
                 <CameraStream
                   streamUrl={streamUrl}
                   isStreaming={cameraStatus.streaming && !streamError}
@@ -596,20 +640,18 @@ const Dashboard = (props) => {
 
                 <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,#fcb90b15,transparent_55%)]" />
 
-                <div className="absolute top-0 left-0 right-0 z-10 flex justify-between items-start p-4">
+                <div className="absolute top-0 left-0 right-0 z-10 flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-start p-4">
                   <span className="px-2 py-1 rounded-full bg-black/40 backdrop-blur-sm text-xs text-primary-white/80">
                     Smart Door • AI Lab
                   </span>
 
                   {lastEvent && (
                     <div
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-sm text-xs font-semibold animate-pulse ${lastEvent.data?.authorized
-                        ? "bg-emerald-500/80 text-white"
-                        : "bg-red-500/80 text-white"
-                        }`}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-sm text-xs font-semibold animate-pulse
+                      ${lastEvent.data?.authorized ? "bg-emerald-500/80 text-white" : "bg-red-500/80 text-white"}
+                      max-w-full sm:max-w-[70%]`}
                     >
-                      <NotificationsActiveRoundedIcon sx={{ fontSize: 14 }} />
-                      <span>
+                      <span className="truncate">
                         {lastEvent.data?.name || "Detection"} -{" "}
                         {lastEvent.data?.authorized ? "Authorized" : "Unauthorized"}
                       </span>
@@ -673,7 +715,7 @@ const Dashboard = (props) => {
               )}
             </section>
 
-            <section className="grid gap-4 md:grid-cols-2">
+            <section className="grid gap-4 md:grid-cols-2 min-w-0">
               <div
                 ref={sectionLogsRef}
                 id="logs"
@@ -690,42 +732,55 @@ const Dashboard = (props) => {
                   </button>
                 </div>
 
-                <div
-                  className="text-[11px] font-semibold text-gray-600 dark:text-gray-400 border-b border-gray-300 dark:border-zinc-700 pb-2 grid"
-                  style={{ gridTemplateColumns: "1.6fr 1.4fr 1.2fr 1fr" }}
-                >
+                <div className="text-[11px] md:text-[10px] font-semibold text-gray-600 dark:text-gray-400 border-b border-gray-300 dark:border-zinc-700 pb-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-2">
                   <span>Timestamps</span>
                   <span>Name</span>
-                  <span>Role</span>
-                  <span>Status</span>
+                  <span className="hidden sm:block lg:hidden">Status</span>
+                  <span className="hidden lg:block">Role</span>
+                  <span className="hidden lg:block">Status</span>
                 </div>
 
-                <div className="mt-2 space-y-2 text-xs">
-                  {recentLogs.map((log, idx) => (
-                    <div
-                      key={log.id ?? `${log._tsDisplay}-${idx}`}
-                      className="grid items-center py-1 border-b border-gray-200 dark:border-zinc-700 last:border-0"
-                      style={{ gridTemplateColumns: "1.6fr 1.4fr 1.2fr 1fr" }}
-                    >
-                      <span className="font-mono text-[11px] text-primary-black dark:text-white">{log._tsDisplay}</span>
-                      <span className="font-medium text-primary-black dark:text-white">{log.name}</span>
-                      <span className="text-gray-700 dark:text-gray-400">{log.role}</span>
+                {recentLogs.map((log, idx) => (
+                  <div
+                    key={log.id ?? `${log._tsDisplay}-${idx}`}
+                    className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-2 items-center py-1 border-b border-gray-200 dark:border-zinc-700 last:border-0"
+                  >
+                    <span className="font-mono text-[11px] md:text-[10px] text-primary-black dark:text-white truncate">
+                      {log._tsDisplay}
+                    </span>
+
+                    <span className="font-medium text-[11px] md:text-[10px] text-primary-black dark:text-white truncate">
+                      {log.name}
+                    </span>
+
+                    <span className="hidden sm:block lg:hidden">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit ${log.authorized ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"
-                          }`}
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit ${
+                          log.authorized ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"
+                        }`}
                       >
                         {log.authorized ? "Authorized" : "Unauthorized"}
                       </span>
-                    </div>
-                  ))}
+                    </span>
 
-                  {!recentLogs.length && (
-                    <div className="text-xs text-gray-500 dark:text-gray-400 py-3">Belum ada log untuk hari ini.</div>
-                  )}
-                </div>
+                    <span className="hidden lg:block text-[11px] md:text-[10px] text-gray-700 dark:text-gray-400 truncate">
+                      {log.role}
+                    </span>
+
+                    <span className="hidden lg:block">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] md:text-[9px] font-semibold w-fit ${
+                          log.authorized ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"
+                        }`}
+                      >
+                        {log.authorized ? "Authorized" : "Unauthorized"}
+                      </span>
+                    </span>
+                  </div>
+                ))}
               </div>
 
-              <div className="bg-primary-white dark:bg-zinc-900 text-primary-black dark:text-white rounded-3xl p-4 md:p-5 shadow-lg shadow-black/40 transition-colors duration-300">
+              <div className="bg-primary-white dark:bg-zinc-900 text-primary-black dark:text-white rounded-3xl p-4 md:p-5 shadow-lg shadow-black/40 transition-colors duration-300 min-w-0 flex flex-col h-full">
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <h3 className="text-sm font-semibold text-primary-black dark:text-white">Door Access Summary</h3>
@@ -753,59 +808,76 @@ const Dashboard = (props) => {
                       </span>
                     ))
                   ) : (
-                    <span className="text-xs text-gray-500 dark:text-gray-400">Belum ada authorized hari ini.</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">No authorized entries today.</span>
                   )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 text-[11px] mt-3">
-                  <div className="rounded-2xl bg-secondary-gray dark:bg-zinc-800 px-3 py-2">
-                    <p className="text-gray-500 dark:text-gray-400">Total Today</p>
-                    <p className="text-sm font-semibold text-primary-black dark:text-white">{todaySummary.total}</p>
-                  </div>
-                  <div className="rounded-2xl bg-secondary-gray dark:bg-zinc-800 px-3 py-2">
-                    <p className="text-gray-500 dark:text-gray-400">Authorized</p>
-                    <p className="text-sm font-semibold text-primary-black dark:text-white">{todaySummary.authorized}</p>
-                  </div>
-                  <div className="rounded-2xl bg-secondary-gray dark:bg-zinc-800 px-3 py-2">
-                    <p className="text-gray-500 dark:text-gray-400">Unauthorized</p>
-                    <p className="text-sm font-semibold text-primary-black dark:text-white">{todaySummary.unauthorized}</p>
-                  </div>
-                </div>
+                <div className="mt-auto pt-3">
+                  <div className="space-y-2 text-[11px]">
+                    <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                      <div className="rounded-2xl bg-secondary-gray dark:bg-zinc-800 px-3 py-2 md:col-span-2 lg:col-span-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400">Total</p>
+                          <p className="text-sm font-semibold text-primary-black dark:text-white leading-none">
+                            {todaySummary.total}
+                          </p>
+                        </div>
+                      </div>
 
-                <div className="mt-4">
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">Access per hour (today)</p>
+                      <div className="rounded-2xl bg-secondary-gray dark:bg-zinc-800 px-3 py-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400">Authorized</p>
+                          <p className="text-sm font-semibold text-primary-black dark:text-white leading-none">
+                            {todaySummary.authorized}
+                          </p>
+                        </div>
+                      </div>
 
-                  <div className="flex h-32 w-full">
-                    <div className="w-14 flex-shrink-0">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={accessPerHourToday} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
-                          <Bar dataKey="total" fill="transparent" isAnimationActive={false} />
-                          <YAxis tick={{ fontSize: 10 }} allowDecimals={false} domain={yDomainHour} />
-                        </BarChart>
-                      </ResponsiveContainer>
+                      <div className="rounded-2xl bg-secondary-gray dark:bg-zinc-800 px-3 py-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400">Unauthorized</p>
+                          <p className="text-sm font-semibold text-primary-black dark:text-white leading-none">
+                            {todaySummary.unauthorized}
+                          </p>
+                        </div>
+                      </div>
                     </div>
+                  </div>
 
-                    <div ref={hourScrollRef} className="flex-1 overflow-x-auto overflow-y-hidden">
-                      <div style={{ width: accessPerHourToday.length * 36, height: "100%" }}>
+                  <div className="mt-4">
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">Access per hour (today)</p>
+                    <div className="flex h-32 w-full min-w-0">
+                      <div className="w-14 flex-shrink-0">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart
-                            data={accessPerHourToday}
-                            margin={{ top: 8, right: 10, left: 0, bottom: 0 }}
-                            barCategoryGap={4}
-                          >
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="time" tick={{ fontSize: 10 }} interval={0} />
-                            <YAxis hide domain={yDomainHour} />
-                            <Tooltip />
-                            <Bar
-                              dataKey="total"
-                              fill="var(--color-chart-total)"
-                              radius={[6, 6, 0, 0]}
-                              barSize={14}
-                              isAnimationActive={false}
-                            />
+                          <BarChart data={accessPerHourToday} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+                            <Bar dataKey="total" fill="transparent" isAnimationActive={false} />
+                            <YAxis tick={{ fontSize: 10 }} allowDecimals={false} domain={yDomainHour} />
                           </BarChart>
                         </ResponsiveContainer>
+                      </div>
+
+                      <div ref={hourScrollRef} className="flex-1 min-w-0 max-w-full overflow-x-auto overflow-y-hidden">
+                        <div style={{ width: accessPerHourToday.length * 36, height: "100%" }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={accessPerHourToday}
+                              margin={{ top: 8, right: 10, left: 0, bottom: 0 }}
+                              barCategoryGap={4}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                              <XAxis dataKey="time" tick={{ fontSize: 10 }} interval={0} />
+                              <YAxis hide domain={yDomainHour} />
+                              <Tooltip />
+                              <Bar
+                                dataKey="total"
+                                fill="var(--color-chart-total)"
+                                radius={[6, 6, 0, 0]}
+                                barSize={14}
+                                isAnimationActive={false}
+                              />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -818,9 +890,9 @@ const Dashboard = (props) => {
             <section
               ref={sectionAnalyticsRef}
               id="analytics"
-              className="scroll-mt-6 bg-primary-white dark:bg-zinc-900 text-primary-black dark:text-white rounded-3xl p-5 md:p-6 shadow-xl shadow-black/40 transition-colors duration-300"
+              className="scroll-mt-6 bg-primary-white dark:bg-zinc-900 text-primary-black dark:text-white rounded-3xl p-5 md:p-6 shadow-xl shadow-black/40 transition-colors duration-300 min-w-0"
             >
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
                 <div>
                   <h2 className="text-sm font-semibold text-primary-black dark:text-white">Access Statistics</h2>
                   <p className="text-[11px] text-gray-500 dark:text-gray-400">Recap from logs (daily & monthly)</p>
@@ -829,7 +901,7 @@ const Dashboard = (props) => {
                 <select
                   value={recapMode}
                   onChange={(e) => setRecapMode(e.target.value)}
-                  className="text-[11px] border border-gray-200 dark:border-zinc-700 rounded-full px-3 py-1 bg-white dark:bg-zinc-800 dark:text-white"
+                  className="text-[11px] w-full sm:w-auto border border-gray-200 dark:border-zinc-700 rounded-full px-3 py-1 bg-white dark:bg-zinc-800 dark:text-white"
                 >
                   <option value="all">All logs</option>
                   <option value="7d">Last 7 days</option>
@@ -869,7 +941,11 @@ const Dashboard = (props) => {
                           ? "weekLabel"
                           : "monthLabel"
                       }
+                      interval={0}
                       tick={{ fontSize: 11 }}
+                      angle={isXsSm && ["all", "1m", "1y"].includes(recapMode) ? -30 : 0}
+                      textAnchor={isXsSm && ["all", "1m", "1y"].includes(recapMode) ? "end" : "middle"}
+                      height={isXsSm && ["all", "1m", "1y"].includes(recapMode) ? 50 : 30}
                     />
                     <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                     <Tooltip />

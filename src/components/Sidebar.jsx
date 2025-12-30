@@ -8,10 +8,8 @@ import { logout as logoutService } from "../services/authService";
 import { useTheme } from "../context/ThemeContext";
 
 const ThemeToggleSwitch = () => {
-  // Use hook directly inside the component
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
-
 
   return (
     <button
@@ -27,14 +25,24 @@ const ThemeToggleSwitch = () => {
         "transition-colors duration-200",
         "focus:outline-none focus:ring-2 focus:ring-primary-yellow/60",
         "cursor-pointer",
-        isDark ? "bg-zinc-800 border-white/10 ring-1 ring-primary-yellow/60" : "bg-gray-200 border-gray-300",
+        isDark
+          ? "bg-zinc-800 border-white/10 ring-1 ring-primary-yellow/60"
+          : "bg-gray-200 border-gray-300",
       ].join(" ")}
     >
-      <span className={`-mt-[1px] pointer-events-none ${isDark ? "text-white/40" : "text-yellow-500"}`}>
+      <span
+        className={`-mt-[1px] pointer-events-none ${
+          isDark ? "text-white/40" : "text-yellow-500"
+        }`}
+      >
         <LightModeRoundedIcon sx={{ fontSize: 15 }} />
       </span>
 
-      <span className={`-mt-[1px] pointer-events-none ${isDark ? "text-white/75" : "text-gray-400"}`}>
+      <span
+        className={`-mt-[1px] pointer-events-none ${
+          isDark ? "text-white/75" : "text-gray-400"
+        }`}
+      >
         <DarkModeRoundedIcon sx={{ fontSize: 15 }} />
       </span>
 
@@ -50,14 +58,9 @@ const ThemeToggleSwitch = () => {
 };
 
 const Sidebar = (props) => {
-  const {
-    activeSection,
-    userName,
-    userRole,
-  } = props;
+  const { activeSection, userName, userRole } = props;
 
-  // Use ThemeContext directly instead of props
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
 
   const storedUserRaw = localStorage.getItem("user");
   let storedUser = null;
@@ -73,7 +76,7 @@ const Sidebar = (props) => {
   const finalUserName = userName ?? storedName ?? "-";
   const finalUserRole = userRole ?? storedRole ?? "-";
 
-  const logout = props.handleLogout || props.onLogout || (() => { });
+  const logout = props.handleLogout || props.onLogout || (() => {});
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -87,25 +90,27 @@ const Sidebar = (props) => {
   const USER_REQUEST_PATH = "/register-request";
   const RESET_PASSWORD_PATH = "/reset-password-request";
   const LOGGING_PATH = "/logging";
-  const LOGIN_PATH = "/";
 
   const isOnDashboard = location.pathname === DASHBOARD_PATH;
   const isOnLogging = location.pathname === LOGGING_PATH;
 
   const isRouteActive = (path) => location.pathname === path;
 
-  const derivedActiveSection =
-    isOnDashboard
-      ? activeSection
-      : location.state?.fromSection || (isOnLogging ? "logs" : null);
+  const derivedActiveSection = isOnDashboard
+    ? activeSection
+    : location.state?.fromSection || (isOnLogging ? "logs" : null);
 
   const navBtnClass = (key, forceActive) => {
     const active =
-      typeof forceActive === "boolean" ? forceActive : derivedActiveSection === key;
+      typeof forceActive === "boolean"
+        ? forceActive
+        : derivedActiveSection === key;
 
     return [
       "w-full text-left px-3 py-2 rounded-2xl font-semibold transition",
-      active ? "bg-primary-yellow text-primary-black" : "text-white/80 dark:text-gray-700 hover:bg-white/5 dark:hover:bg-gray-100",
+      active
+        ? "bg-primary-yellow text-primary-black"
+        : "text-white/80 dark:text-gray-700 hover:bg-white/5 dark:hover:bg-gray-100",
     ].join(" ");
   };
 
@@ -120,6 +125,10 @@ const Sidebar = (props) => {
 
     const goTo = props.scrollToSection || props.onScrollToSection;
     if (typeof goTo === "function") goTo(section);
+
+    if (typeof props.setSidebarOpen === "function" && window.innerWidth < 768) {
+      props.setSidebarOpen(false);
+    }
   };
 
   const handleLogoutClick = () => setLogoutOpen(true);
@@ -130,29 +139,72 @@ const Sidebar = (props) => {
     await logoutService();
     try {
       logout();
-    } catch (_) { }
+    } catch (_) {}
 
     navigate("/", { replace: true });
   };
 
+  const sidebarOpen = typeof props.sidebarOpen === "boolean" ? props.sidebarOpen : true;
+  const setSidebarOpen = typeof props.setSidebarOpen === "function" ? props.setSidebarOpen : null;
+
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 h-screen w-60 md:w-64 z-[9999] pointer-events-auto border-r border-white/10 dark:border-gray-200 flex flex-col px-5 py-6 bg-primary-black dark:bg-white text-white dark:text-primary-black transition-colors duration-300">
+      {setSidebarOpen && sidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar overlay"
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-[9998] bg-black/50 md:hidden"
+        />
+      )}
+
+      <aside
+        className={[
+          "fixed inset-y-0 left-0 h-screen w-60 md:w-56 z-[9999] pointer-events-auto",
+          "border-r border-white/10 dark:border-gray-200",
+          "flex flex-col px-5 py-6 bg-primary-black dark:bg-white text-white dark:text-primary-black",
+          "transition-colors duration-300",
+          "transform transition-transform duration-300 ease-out",
+          "md:translate-x-0",
+          setSidebarOpen ? (sidebarOpen ? "translate-x-0" : "-translate-x-full") : "translate-x-0",
+        ].join(" ")}
+      >
+        {setSidebarOpen && (
+          <div className="md:hidden flex justify-end -mt-2 mb-2">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              className="px-2 py-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition"
+              aria-label="Close sidebar"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-col flex-1 min-h-0">
           <div className="flex flex-col items-center mb-6">
             <div className="w-14 h-14 flex items-center justify-center mb-3">
-              <img src={Logo} alt="AI Lab Logo" className="w-15 h-15 object-contain" />
+              <img
+                src={Logo}
+                alt="AI Lab Logo"
+                className="w-15 h-15 object-contain"
+              />
             </div>
 
             <div className="flex flex-col items-center text-center leading-tight">
-              <span className="text-sm font-semibold tracking-wide">Monitoring Dashboard</span>
-              <span className="text-[11px] text-white/60 dark:text-gray-500">AI Lab • Smart Door Access</span>
+              <span className="text-sm font-semibold tracking-wide">
+                Monitoring Dashboard
+              </span>
+              <span className="text-[11px] text-white/60 dark:text-gray-500">
+                AI Lab • Smart Door Access
+              </span>
             </div>
           </div>
 
           <div className="mb-4 border-t border-white/10 dark:border-gray-200" />
 
-          <nav className="flex flex-col flex-1 min-h-0 space-y-1 text-sm">
+          <nav className="flex flex-col flex-1 min-h-0 space-y-1 text-sm overflow-y-auto pr-1">
             <button
               type="button"
               onClick={() => handleDashboardSectionClick("camera")}
@@ -181,16 +233,28 @@ const Sidebar = (props) => {
               <>
                 <button
                   type="button"
-                  onClick={() => navigate(USER_REQUEST_PATH)}
-                  className={navBtnClass("register-request", isRouteActive(USER_REQUEST_PATH))}
+                  onClick={() => {
+                    navigate(USER_REQUEST_PATH);
+                    if (setSidebarOpen && window.innerWidth < 768) setSidebarOpen(false);
+                  }}
+                  className={navBtnClass(
+                    "register-request",
+                    isRouteActive(USER_REQUEST_PATH)
+                  )}
                 >
                   Register Request
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => navigate(RESET_PASSWORD_PATH)}
-                  className={navBtnClass("reset-password-request", isRouteActive(RESET_PASSWORD_PATH))}
+                  onClick={() => {
+                    navigate(RESET_PASSWORD_PATH);
+                    if (setSidebarOpen && window.innerWidth < 768) setSidebarOpen(false);
+                  }}
+                  className={navBtnClass(
+                    "reset-password-request",
+                    isRouteActive(RESET_PASSWORD_PATH)
+                  )}
                 >
                   Reset Password Request
                 </button>
@@ -208,9 +272,13 @@ const Sidebar = (props) => {
         </div>
 
         <div className="pt-3 border-t border-white/10 dark:border-gray-200 flex items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold text-white dark:text-primary-black">{finalUserName}</span>
-            <span className="text-[11px] text-white/60 dark:text-gray-500">{finalUserRole}</span>
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-semibold text-white dark:text-primary-black truncate">
+              {finalUserName}
+            </span>
+            <span className="text-[11px] text-white/60 dark:text-gray-500 truncate">
+              {finalUserRole}
+            </span>
           </div>
           <ThemeToggleSwitch />
         </div>
