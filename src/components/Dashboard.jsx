@@ -1,25 +1,10 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  BarChart,
-  Bar,
-} from "recharts";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar} from "recharts";
 import Sidebar from "./Sidebar";
 import CameraStream from "./CameraStream";
 import useWebSocket from "../hooks/useWebSocket";
-import {
-  getStreamUrl,
-  getCameraStatus,
-  startCamera,
-  stopCamera,
-} from "../services/cameraService";
+import { getStreamUrl, getCameraStatus, startCamera, stopCamera} from "../services/cameraService";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
@@ -104,6 +89,147 @@ const incBucket = (map, key, isAuthorized) => {
   map[key].total += 1;
   if (isAuthorized) map[key].authorized += 1;
   else map[key].unauthorized += 1;
+};
+
+const startOfMonthUTC = (d) =>
+  new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1, 0, 0, 0));
+
+const addMonthsUTC = (d, n) => {
+  const x = new Date(d);
+  x.setUTCMonth(x.getUTCMonth() + n);
+  return x;
+};
+
+const buildDailyBuckets = (logs, nowTick, nDays) => {
+  const now = new Date(nowTick);
+  const days = Array.from({ length: nDays }, (_, i) =>
+    addDays(now, -((nDays - 1) - i))
+  );
+
+  const buckets = {};
+  days.forEach((d) => {
+    buckets[ymdInWIB(d)] = { total: 0, authorized: 0, unauthorized: 0 };
+  });
+
+  logs.forEach((x) => {
+    const k = ymdInWIB(x._date);
+    if (buckets[k]) incBucket(buckets, k, x.authorized);
+  });
+
+  return days.map((d) => ({
+    dayKey: ymdInWIB(d),
+    dayLabel: DTF_WD.format(d),
+    ...buckets[ymdInWIB(d)],
+  }));
+};
+
+const buildMonthlyBuckets = (logs, nowTick, nMonths) => {
+  if (!logs.length) return [];
+
+  const now = new Date(nowTick);
+  const latestMonthStart = startOfMonthUTC(now);
+
+  const months = Array.from({ length: nMonths }, (_, i) =>
+    addMonthsUTC(latestMonthStart, -((nMonths - 1) - i))
+  );
+
+  const buckets = {};
+  months.forEach((d) => {
+    buckets[monthKeyInWIB(d)] = { total: 0, authorized: 0, unauthorized: 0 };
+  });
+
+  logs.forEach((x) => {
+    const k = monthKeyInWIB(x._date);
+    if (buckets[k]) incBucket(buckets, k, x.authorized);
+  });
+
+  return months.map((d) => ({
+    monthKey: monthKeyInWIB(d),
+    monthLabel: monthLabelInWIB(d),
+    ...buckets[monthKeyInWIB(d)],
+  }));
+};
+
+const DTF_MD = makeDTF(TZ_ID, { month: "short", day: "2-digit" });
+
+const weekdayIndexWIB = (d) => {
+  const wd = new Intl.DateTimeFormat("en-US", { timeZone: TZ_ID, weekday: "short" }).format(d);
+  const map = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+  return map[wd] ?? 0;
+};
+
+const startOfWeekWIB = (d) => {
+  const idx = weekdayIndexWIB(d);
+  return addDays(d, -idx);
+};
+
+const weekKeyInWIB = (d) => ymdInWIB(startOfWeekWIB(d));
+
+const weekLabelInWIB = (weekStart) => {
+  const end = addDays(weekStart, 6);
+  const a = DTF_MD.format(weekStart);
+  const b = DTF_MD.format(end);
+  return `${a}–${b}`;
+};
+
+const buildWeeklyBucketsLast30Days = (logs, nowTick) => {
+  const now = new Date(nowTick);
+  const start = addDays(now, -29); 
+
+  const firstWeekStart = startOfWeekWIB(start);
+  const lastWeekStart = startOfWeekWIB(now);
+
+  const weeks = [];
+  for (let cur = new Date(firstWeekStart); cur <= lastWeekStart; cur = addDays(cur, 7)) {
+    weeks.push(new Date(cur));
+  }
+
+  const buckets = {};
+  weeks.forEach((ws) => {
+    buckets[weekKeyInWIB(ws)] = { total: 0, authorized: 0, unauthorized: 0 };
+  });
+
+  logs.forEach((x) => {
+    if (!x._date) return;
+    if (x._date < start || x._date > now) return;
+
+    const k = weekKeyInWIB(x._date);
+    if (buckets[k]) incBucket(buckets, k, x.authorized);
+  });
+
+  return weeks.map((ws) => ({
+    weekKey: weekKeyInWIB(ws),
+    weekLabel: weekLabelInWIB(ws),
+    ...buckets[weekKeyInWIB(ws)],
+  }));
+};
+
+const buildJanToDecThisYearBuckets = (logs, nowTick) => {
+  const now = new Date(nowTick);
+
+  const yearNowWIB = Number(ymdInWIB(now).slice(0, 4));
+
+  const months = Array.from({ length: 12 }, (_, i) => new Date(Date.UTC(yearNowWIB, i, 1, 0, 0, 0)));
+
+  const buckets = {};
+  months.forEach((d) => {
+    buckets[monthKeyInWIB(d)] = { total: 0, authorized: 0, unauthorized: 0 };
+  });
+
+  logs.forEach((x) => {
+    if (!x._date) return;
+    const yWIB = Number(ymdInWIB(x._date).slice(0, 4));
+    if (yWIB !== yearNowWIB) return;
+
+    const k = monthKeyInWIB(x._date);
+    if (buckets[k]) incBucket(buckets, k, x.authorized);
+  });
+
+  return months.map((d) => ({
+    monthKey: monthKeyInWIB(d),
+    monthLabel: monthLabelInWIB(d), 
+    ...buckets[monthKeyInWIB(d)],
+  }));
 };
 
 const Dashboard = (props) => {
@@ -389,68 +515,25 @@ const Dashboard = (props) => {
     return accessPerHourToday.reduce((max, cur) => (cur.total > max.total ? cur : max));
   }, [accessPerHourToday]);
 
-  const accessPerDayLast7 = useMemo(() => {
-    const now = new Date(nowTick);
-    const days = Array.from({ length: 7 }, (_, i) => addDays(now, -(6 - i)));
-
-    const buckets = {};
-    days.forEach((d) => (buckets[ymdInWIB(d)] = { total: 0, authorized: 0, unauthorized: 0 }));
-
-    logs.forEach((x) => {
-      const k = ymdInWIB(x._date);
-      if (buckets[k]) incBucket(buckets, k, x.authorized);
-    });
-
-    return days.map((d) => ({
-      dayKey: ymdInWIB(d),
-      dayLabel: DTF_WD.format(d),
-      ...buckets[ymdInWIB(d)],
-    }));
-  }, [logs, nowTick]);
-
-  const accessPerMonthLast5 = useMemo(() => {
-    if (!logs.length) return [];
-
-    const now = new Date(nowTick);
-    const nowKey = monthKeyInWIB(now);
-    const [yy, mm] = nowKey.split("-").map(Number);
-    const latestMonthStart = new Date(Date.UTC(yy, mm - 1, 1, 0, 0, 0));
-
-    const months = Array.from({ length: 5 }, (_, i) => {
-      const d = new Date(latestMonthStart);
-      d.setUTCMonth(d.getUTCMonth() - (4 - i));
-      return d;
-    });
-
-    const buckets = {};
-    months.forEach((d) => (buckets[monthKeyInWIB(d)] = { total: 0, authorized: 0, unauthorized: 0 }));
-
-    logs.forEach((x) => {
-      const k = monthKeyInWIB(x._date);
-      if (buckets[k]) incBucket(buckets, k, x.authorized);
-    });
-
-    return months.map((d) => ({
-      monthKey: monthKeyInWIB(d),
-      monthLabel: monthLabelInWIB(d),
-      ...buckets[monthKeyInWIB(d)],
-    }));
-  }, [logs, nowTick]);
-
-  const recapData = recapMode === "week" ? accessPerDayLast7 : accessPerMonthLast5;
+  const recapData = useMemo(() => {
+    if (recapMode === "7d") return buildDailyBuckets(logs, nowTick, 7);
+    if (recapMode === "1m") return buildWeeklyBucketsLast30Days(logs, nowTick);
+    if (recapMode === "3m") return buildMonthlyBuckets(logs, nowTick, 3);
+    if (recapMode === "6m") return buildMonthlyBuckets(logs, nowTick, 6);
+    if (recapMode === "1y") return buildMonthlyBuckets(logs, nowTick, 12);
+    return buildJanToDecThisYearBuckets(logs, nowTick);
+  }, [recapMode, logs, nowTick]);
 
   const recentLogs = useMemo(() => {
     return logsToday.slice().sort((a, b) => b._date - a._date).slice(0, 10);
   }, [logsToday]);
 
   const sidebarProps = {
-    ...props,
-    activeSection,
-    scrollToSection,
-    handleLogout,
-    theme,
-    setTheme,
-  };
+  ...props,
+  activeSection,
+  scrollToSection,
+  handleLogout,
+};
 
   return (
     <div className="min-h-screen bg-primary-black dark:bg-primary-black text-primary-white transition-colors duration-300">
@@ -778,10 +861,14 @@ const Dashboard = (props) => {
                     </defs>
 
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-
-                    {/* Harian untuk 7 hari & 1 bulan, Bulanan untuk 3m/6m/1y/all */}
                     <XAxis
-                      dataKey={["7d", "1m"].includes(recapMode) ? "dayLabel" : "monthLabel"}
+                      dataKey={
+                        recapMode === "7d"
+                          ? "dayLabel"
+                          : recapMode === "1m"
+                          ? "weekLabel"
+                          : "monthLabel"
+                      }
                       tick={{ fontSize: 11 }}
                     />
                     <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
